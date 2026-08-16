@@ -1,0 +1,43 @@
+roster: 6   matches/pair: 40 x2 mirrored   seed: 0
+strategies: random, heuristic, pimc-8, pimc-24, pimc-24-veto, pimc-24-infer
+
+played 1200 matches in 337.5s (281 ms/match)
+
+Win rate, row vs column
+               random heuris pimc-8 pimc-2 pimc-2 pimc-2
+  random          --    0.049  0.006  0.019  0.006  0.006
+  heuristic      0.951   --    0.099  0.062  0.056  0.451
+  pimc-8         0.994  0.901   --    0.457  0.531  0.673
+  pimc-24        0.981  0.938  0.543   --    0.506  0.741
+  pimc-24-veto   0.994  0.944  0.469  0.494   --    0.765
+  pimc-24-infer  0.994  0.549  0.327  0.259  0.235   --  
+
+Mean score margin, row vs column
+               random heuris pimc-8 pimc-2 pimc-2 pimc-2
+  random          --    -25.9  -42.2  -46.1  -44.2  -38.4
+  heuristic      +25.9   --    -24.9  -28.3  -30.5   -3.0
+  pimc-8         +42.2  +24.9   --     -3.8   -1.9   +6.5
+  pimc-24        +46.1  +28.3   +3.8   --     -0.2   +7.6
+  pimc-24-veto   +44.2  +30.5   +1.9   +0.2   --    +10.1
+  pimc-24-infer  +38.4   +3.0   -6.5   -7.6  -10.1   --  
+
+Ranking by Nash-averaged score
+  strategy               v     net  vs front   margin      Elo  frontier
+  pimc-24           +0.012   0.742       nan    +17.1    1973  yes
+  pimc-24-veto      -0.010   0.733     0.494    +17.4       -  no
+  pimc-8            -0.015   0.711     0.457    +13.6       -  no
+  pimc-24-infer     -0.231   0.473     0.259     +3.4       -  no
+  heuristic         -0.431   0.323     0.062    -12.2       -  no
+  random            -0.487   0.017     0.019    -39.4       -  no
+
+  dominated and eliminated: random, heuristic, pimc-8, pimc-24-veto, pimc-24-infer
+  Nash mixture: pimc-24 1.00
+
+Double-dummy gap — margin conceded to a perfect-information opponent
+  (a ceiling on exploitation, not Nash exploitability; lower is better)
+  pimc-24-infer      +29.4 pts/match   oracle win rate 0.938
+  pimc-24-veto       +30.7 pts/match   oracle win rate 0.979
+  pimc-24            +31.2 pts/match   oracle win rate 0.979
+  pimc-8             +33.6 pts/match   oracle win rate 1.000
+  heuristic          +55.6 pts/match   oracle win rate 1.000
+  random             +60.8 pts/match   oracle win rate 1.000

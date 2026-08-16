@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jester — traced</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a6350;
+  background-image:radial-gradient(ellipse 60% 45% at 22% 12%,#4b8f70 0,transparent 60%),
+                   radial-gradient(ellipse 55% 50% at 82% 80%,#3e805f 0,transparent 58%);
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-weight:700; color:#fdfbf3; padding:26px 32px 70px; min-height:100vh;
+}
+h1{font-size:20px; margin-bottom:3px}
+.sub{font-size:12px; font-weight:600; color:#cfe3d8; margin-bottom:24px; max-width:900px;
+  line-height:1.65}
+.grid{display:grid; grid-template-columns:repeat(5,1fr); gap:15px; max-width:1290px}
+.opt{background:rgba(8,18,14,.42); border-radius:13px; padding:13px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 4px 18px rgba(0,0,0,.28)}
+.opt h3{font-size:13px; margin-bottom:1px}
+.opt .n{font-size:8.5px; text-transform:uppercase; letter-spacing:.15em; color:#8fc3ab;
+  margin-bottom:10px}
+.opt p{font-size:10.5px; font-weight:600; line-height:1.6; color:#bed3c9; margin-top:11px}
+.big{display:flex; justify-content:center; margin-bottom:10px}
+.strip{display:flex; gap:7px; justify-content:center; align-items:flex-end}
+.card{border-radius:7px; position:relative; overflow:hidden; flex:0 0 auto}
+.card.lg{width:146px; height:207px}
+.card.md{width:86px; height:122px}
+.card.sm{width:62px; height:88px}
+.card svg{position:absolute; inset:0; width:100%; height:100%}
+</style>
+</head>
+<body>
+
+<h1>Jester — traced from the sketch</h1>
+<div class="sub">One outline, taken straight off the drawing: the shallow dish at the bottom,
+the long leaf reaching left, the big sail leaning right with its bell at the top, and the
+comma sweeping right and down. The paths are authored in the sketch's own coordinates and
+dropped into the card by one transform, so the proportions are the sketch's rather than
+mine. The five below are that same trace with five different line treatments.</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const INK="#5b3b8f", EDGE_OUT="#4a2f73", EDGE_IN="#e3d1a9";
+const PARCHMENT = "radial-gradient(ellipse 82% 74% at 48% 42%,"
+                + " #e7d7b3 0%, #ddc99e 40%, #c9b184 78%, #b39a70 100%)";
+const enc = c => c.replace("#","%23");
+const lattice = (fg, op) =>
+ `url("data:image/svg+xml;utf8,`
+ +`<svg xmlns='http://www.w3.org/2000/svg' width='20' height='24' viewBox='0 0 20 24'>`
+ +`<g fill='${enc(fg)}' opacity='${op}'>`
+ +`<path d='M0 -12 L10 0 L0 12 L-10 0 Z'/><path d='M20 -12 L30 0 L20 12 L10 0 Z'/>`
+ +`<path d='M0 12 L10 24 L0 36 L-10 24 Z'/><path d='M20 12 L30 24 L20 36 L10 24 Z'/>`
+ +`</g></svg>")`;
+
+const frame = `
+  <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="${INK}"
+        stroke-width="1" opacity=".32"/>
+  <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="${INK}"
+        stroke-width=".6" opacity=".22"/>`;
+const label = `<text x="50" y="127" text-anchor="middle" fill="${INK}"
+  font-family="Georgia,serif" font-size="10" letter-spacing="2.5" opacity=".8">JESTER</text>`;
+
+/* ==========================================================================
+   THE TRACE
+
+   Coordinates are the sketch's, in its own ~190-unit square, so each curve can be checked
+   against the drawing directly. One transform drops the whole thing into the card: the
+   content spans x 6..188 and y 19..152 there, which maps to x 8..92 and y 30..91 here.
+   Stroke widths are in sketch units too, so a 5 reads as 2.3 on the card.
+   ========================================================================== */
+const DISH  = "M56 132 C78 125 124 124 150 132 C146 142 128 149 104 150"
+            + " C80 151 62 143 56 132 Z";
+const LEAF  = "M18 82 C36 82 48 92 82 132 C54 128 30 112 18 82 Z";
+const SAIL  = "M84 132 C86 96 106 58 142 32 C140 70 126 104 116 132 Z";
+const COMMA = "M120 134 C146 116 166 106 176 102 C172 130 150 146 108 148 Z";
+const BELLS = [[13,77],[147,26],[181,97]];
+
+/* w: line weight in sketch units. fill: null for open outlines, INK for solid.
+   bellFill: bells can be solid while the shapes stay open, which is the middle setting. */
+function hat({w=5, fill=null, bellFill=null}={}){
+  const g = (d,f) => `<path d="${d}" fill="${f||"none"}" stroke="${INK}"
+    stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  return `<g transform="translate(5.2,21.2) scale(0.4615)">`
+    + g(DISH, fill) + g(LEAF, fill) + g(SAIL, fill) + g(COMMA, fill)
+    + BELLS.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="7"
+        fill="${bellFill||"none"}" stroke="${INK}" stroke-width="${w}"/>`).join("")
+    + `</g>`;
+}
+
+const V=[
+ {n:"Trace", tag:"Open outline", art:hat(),
+  p:"The drawing as drawn: every shape open, bells as rings, one weight throughout. Lightest on the card and the closest to the pen."},
+ {n:"Solid bells", tag:"Open shapes, filled bells", art:hat({bellFill:INK}),
+  p:"The same outline with the three bells filled in. The bells stop reading as loops and start reading as bells, which is most of what was missing."},
+ {n:"Heavy line", tag:"Open outline, thicker", art:hat({w:8, bellFill:INK}),
+  p:"Same trace at half again the line weight. Holds at sixty-two pixels wide, where the thin version starts to disappear into the parchment."},
+ {n:"Filled", tag:"Solid", art:hat({fill:INK, bellFill:INK}),
+  p:"Every shape filled. Strongest silhouette on the page and the only one you can identify across the table, at the cost of the drawn look."},
+ {n:"Filled sail", tag:"Solid sail, open rest", art:
+   `<g transform="translate(5.2,21.2) scale(0.4615)">`
+   + `<path d="${DISH}" fill="none" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`
+   + `<path d="${LEAF}" fill="none" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`
+   + `<path d="${SAIL}" fill="${INK}" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`
+   + `<path d="${COMMA}" fill="none" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`
+   + BELLS.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="7" fill="${INK}" stroke="${INK}"
+       stroke-width="5"/>`).join("") + `</g>`,
+  p:"Only the sail filled, so the eye lands on the tall shape first and the other two stay drawings. Keeps some weight without going fully solid."},
+];
+
+function cardEl(v, size){
+  const d=document.createElement("div");
+  d.className="card "+size;
+  d.innerHTML=`<svg viewBox="0 0 100 140">${frame}${v.art}${label}</svg>`;
+  d.style.backgroundImage = `${lattice(INK,".1")}, ${PARCHMENT}`;
+  d.style.backgroundSize  = "16px 20px, auto";
+  d.style.boxShadow = `0 6px 16px rgba(0,0,0,.45), inset 0 0 0 2px ${EDGE_OUT},`
+                    + ` inset 0 0 0 4px ${EDGE_IN}`;
+  return d;
+}
+const grid=document.getElementById("grid");
+V.forEach((v,i)=>{
+  const box=document.createElement("div");
+  box.className="opt";
+  box.innerHTML=`<h3>${i+1}. ${v.n}</h3><div class="n">${v.tag}</div>
+    <div class="big"></div><div class="strip"></div><p>${v.p}</p>`;
+  box.querySelector(".big").appendChild(cardEl(v,"lg"));
+  box.querySelector(".strip").appendChild(cardEl(v,"md"));
+  box.querySelector(".strip").appendChild(cardEl(v,"sm"));
+  grid.appendChild(box);
+});
+</script>
+</body>
+</html>

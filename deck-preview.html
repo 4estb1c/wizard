@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Full deck — monogram</title>
+<style>
+:root{ --face:#fdfaf0; --navy:#2b3a67; --red:#d6302f; --gold:#d4a53a; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a6350;
+  background-image:radial-gradient(ellipse 60% 45% at 22% 12%,#4b8f70 0,transparent 60%),
+                   radial-gradient(ellipse 55% 50% at 82% 80%,#3e805f 0,transparent 58%);
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-weight:700; color:#fdfbf3; padding:26px 32px 60px; min-height:100vh;
+}
+h1{font-size:20px; margin-bottom:3px}
+.sub{font-size:12px; font-weight:600; color:#cfe3d8; margin-bottom:22px; max-width:820px; line-height:1.6}
+h3{font-size:9.5px; text-transform:uppercase; letter-spacing:.17em; color:#8fc3ab; margin:22px 0 9px}
+.row{display:flex; gap:9px; flex-wrap:wrap; align-items:flex-end}
+
+.card{background:var(--face); border-radius:7px; position:relative; overflow:hidden;
+  box-shadow:0 6px 16px rgba(0,0,0,.4), inset 0 0 0 2px #1b1f35, inset 0 0 0 4px var(--face);
+  flex:0 0 auto; font-size:calc(var(--w) * .22)}
+.card.lg{--w:132px; width:132px; height:186px}
+.card.sm{--w:72px; width:72px; height:101px}
+.card.xs{--w:56px; width:56px; height:79px}
+.card svg{position:absolute; inset:0; width:100%; height:100%}
+.card .cnr{position:absolute; line-height:.88; text-align:center; font-weight:800; font-size:.72em}
+.cnr.tl{top:6%; left:7.5%} .cnr.br{bottom:6%; right:7.5%; transform:rotate(180deg)}
+.cnr i{display:block; font-style:normal; font-size:.9em; margin-top:.08em}
+.card.wiz{background:linear-gradient(168deg,#232a4d,#12162e);
+  box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
+.card.jes{background:linear-gradient(168deg,#fdf8ec,#f2e6cd)}
+</style>
+</head>
+<body>
+<h1>Full deck — monogram ranks, drawn specials</h1>
+<div class="sub">Every rank uses style 1: the rank set in a serif face inside a hairline double
+frame, with its suit beneath. All five match — the ten simply drops a size to keep the same
+optical width across two glyphs, and the Ace gives its suit more weight. Wizards and Jesters use
+style 2, single-weight line drawing, so the four cards that break the suit system also look like
+they come from somewhere else.</div>
+
+<h3>Spades, large</h3>
+<div class="row" id="large"></div>
+<h3>All four suits, at hand size</h3>
+<div id="suits"></div>
+<h3>The specials</h3>
+<div class="row" id="specials"></div>
+<h3>The whole deck, 24 cards</h3>
+<div class="row" id="all"></div>
+
+<script>
+/* Four-colour deck: spades navy, hearts red, diamonds amber, clubs green. */
+const SUIT_INK=["#2b3a67","#d6302f","#b8840a","#1e7a4b"];
+const RED="#d6302f", GOLD="#d4a53a", FACE="#fdfaf0";
+const SUITS=["♠","♥","♦","♣"], RANKS=["10","J","Q","K","A"];
+const colorOf = s => SUIT_INK[s];
+
+/* The hairline double frame every rank card shares — the through-line of style 1. */
+const frame = c => `
+  <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="${c}"
+        stroke-width="1" opacity=".28"/>
+  <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="${c}"
+        stroke-width=".6" opacity=".2"/>`;
+
+/* One treatment for all five ranks. "10" is two glyphs, so it drops a size to keep the
+   same optical width as a single letter; the Ace gives its suit more weight. Nothing else
+   varies, which is what makes the ranks read as one set. */
+function rankSVG(label, suit, c){
+  const wide = label.length > 1;
+  return `<svg viewBox="0 0 100 140">${frame(c)}
+    <text x="50" y="${wide?81:84}" text-anchor="middle" fill="${c}"
+          font-family="Georgia,'Times New Roman',serif" font-size="${wide?50:64}">${label}</text>
+    <line x1="31" y1="95" x2="69" y2="95" stroke="${c}" stroke-width=".9" opacity=".38"/>
+    <text x="50" y="117" text-anchor="middle" fill="${c}"
+          font-family="Georgia,serif" font-size="${label==="A"?26:19}">${suit}</text>
+  </svg>`;
+}
+
+/* Wizard — style 2. Stroked cone and brim, solid jewels, sparks off the tip. */
+const wizard = () => `
+<svg viewBox="0 0 100 140">
+  <rect x="10" y="10" width="80" height="120" rx="4" fill="none" stroke="${GOLD}"
+        stroke-width=".8" opacity=".4"/>
+  <g fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M50 32 L69 88 L31 88 Z"/>
+    <path d="M27 89 C27 84 38 81 50 81 C62 81 73 84 73 89 C73 94 62 97 50 97
+             C38 97 27 94 27 89 Z"/>
+  </g>
+  <circle cx="50" cy="27" r="4.2" fill="${GOLD}"/>
+  <path d="M46 60 L48 67 L55 69 L48 71 L46 78 L44 71 L37 69 L44 67 Z" fill="${GOLD}"/>
+  <circle cx="63" cy="52" r="2.2" fill="${GOLD}" opacity=".85"/>
+  <circle cx="37" cy="46" r="1.6" fill="${GOLD}" opacity=".7"/>
+  <circle cx="66" cy="70" r="1.6" fill="${GOLD}" opacity=".7"/>
+  <text x="50" y="119" text-anchor="middle" fill="${GOLD}" font-family="Georgia,serif"
+        font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
+</svg>`;
+
+/* Jester — style 2. Three belled points over a stroked cap and band. */
+const jester = () => `
+<svg viewBox="0 0 100 140">
+  ${frame(RED)}
+  <g fill="none" stroke="${RED}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M33 84 C21 72 19 54 29 44 C37 54 41 70 45 84 Z"/>
+    <path d="M44 84 C44 68 46 52 50 41 C54 52 56 68 56 84 Z"/>
+    <path d="M67 84 C79 72 81 54 71 44 C63 54 59 70 55 84 Z"/>
+    <rect x="25" y="85" width="50" height="12" rx="4"/>
+  </g>
+  <circle cx="28" cy="40" r="4.4" fill="${RED}"/>
+  <circle cx="50" cy="36" r="4.4" fill="${RED}"/>
+  <circle cx="72" cy="40" r="4.4" fill="${RED}"/>
+  <circle cx="38" cy="91" r="2" fill="${RED}"/>
+  <circle cx="50" cy="91" r="2" fill="${RED}"/>
+  <circle cx="62" cy="91" r="2" fill="${RED}"/>
+  <text x="50" y="119" text-anchor="middle" fill="${RED}" font-family="Georgia,serif"
+        font-size="11" letter-spacing="2.5" opacity=".8">JESTER</text>
+</svg>`;
+
+const art = (rank, suit) => rankSVG(RANKS[rank], SUITS[suit], colorOf(suit));
+function cardHTML(rank, suit, size){
+  const c=colorOf(suit), s=SUITS[suit];
+  return `<div class="card ${size}" style="color:${c}">${art(rank,suit)}
+    <div class="cnr tl">${RANKS[rank]}<i>${s}</i></div>
+    <div class="cnr br">${RANKS[rank]}<i>${s}</i></div></div>`;
+}
+const wizHTML = size => `<div class="card ${size} wiz">${wizard()}</div>`;
+const jesHTML = size => `<div class="card ${size} jes">${jester()}</div>`;
+
+document.getElementById("large").innerHTML =
+  [0,1,2,3,4].map(r=>cardHTML(r,0,"lg")).join("") + wizHTML("lg") + jesHTML("lg");
+document.getElementById("suits").innerHTML = [0,1,2,3].map(su=>
+  `<div class="row" style="margin-bottom:9px">${[0,1,2,3,4].map(r=>cardHTML(r,su,"sm")).join("")}</div>`
+).join("");
+document.getElementById("specials").innerHTML =
+  wizHTML("sm")+wizHTML("sm")+jesHTML("sm")+jesHTML("sm");
+document.getElementById("all").innerHTML =
+  [0,1,2,3].map(su=>[0,1,2,3,4].map(r=>cardHTML(r,su,"xs")).join("")).join("")
+  + wizHTML("xs")+wizHTML("xs")+jesHTML("xs")+jesHTML("xs");
+</script>
+</body>
+</html>

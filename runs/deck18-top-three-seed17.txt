@@ -1,0 +1,25 @@
+roster: 3   matches/pair: 150 x2 mirrored   seed: 17
+strategies: pimc-8, pimc-24, pimc-24-veto
+
+played 900 matches in 554.0s (616 ms/match)
+
+Win rate, row vs column
+              pimc-8 pimc-2 pimc-2
+  pimc-8         --    0.414  0.453
+  pimc-24       0.586   --    0.530
+  pimc-24-veto  0.547  0.470   --  
+
+Mean score margin, row vs column
+              pimc-8 pimc-2 pimc-2
+  pimc-8         --     -4.3   -3.8
+  pimc-24        +4.3   --     +0.2
+  pimc-24-veto   +3.8   -0.2   --  
+
+Ranking by Nash-averaged score
+  strategy               v     net  vs front   margin      Elo  frontier
+  pimc-24           +0.007   0.558       nan     +2.3    1561  yes
+  pimc-24-veto      -0.023   0.508     0.470     +1.8       -  no
+  pimc-8            -0.077   0.434     0.414     -4.0       -  no
+
+  dominated and eliminated: pimc-8, pimc-24-veto
+  Nash mixture: pimc-24 1.00

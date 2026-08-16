@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Up the River</title>
+<style>
+/* ============================================================ palette */
+:root{
+  --felt-1:#4b8f70; --felt-2:#357a5c; --felt-3:#2a6350;
+  --panel:#39404b; --panel-2:#454d5a; --panel-dark:#22262e; --edge:#12151b;
+  --gold:#e5a23c; --gold-hi:#f6c860; --gold-lo:#9d6516;
+  --blue:#2b9bf0; --blue-lo:#12507f;
+  --red:#ef5a4c; --red-lo:#8d2820;
+  --ink:#fdfbf3; --dim:#9aa4b2;
+  --face:#fdfaf0; --navy:#2b3a67; --pipred:#d6302f;
+  --cw:86px; --ch:122px;
+  /* Jester face: a true tessellation, red and black diamonds of equal size with no gaps.
+     The tile carries four quarter-diamonds at its corners, which leaves the complementary
+     black diamond in the middle, so the two colours cover the card exactly. Held here as a
+     variable because the flip animation needs the same fill on a second element. */
+  /* Wizard face: a night sky rather than a flat navy. Two nebula washes over the gradient,
+     then a scatter of stars as one repeating tile — the tile is deliberately not square and
+     its stars are at irregular offsets, so at 86px the repeat never lines up into a grid.
+     Three sizes of star, the small ones dimmest, which is what stops it reading as dots. */
+  --wizface:
+    radial-gradient(circle at 22% 18%, rgba(120,150,255,.16) 0%, transparent 42%),
+    radial-gradient(circle at 78% 76%, rgba(190,120,255,.14) 0%, transparent 46%),
+    url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='64' height='86' viewBox='0 0 64 86'>\
+<g fill='%23ffffff'>\
+<circle cx='7' cy='11' r='1.15' opacity='.85'/><circle cx='39' cy='5' r='.62' opacity='.4'/>\
+<circle cx='55' cy='19' r='.85' opacity='.6'/><circle cx='21' cy='27' r='.55' opacity='.35'/>\
+<circle cx='47' cy='36' r='1.3' opacity='.9'/><circle cx='12' cy='44' r='.7' opacity='.45'/>\
+<circle cx='31' cy='52' r='.5' opacity='.3'/><circle cx='60' cy='58' r='.95' opacity='.62'/>\
+<circle cx='5' cy='66' r='.6' opacity='.38'/><circle cx='42' cy='71' r='1.05' opacity='.75'/>\
+<circle cx='25' cy='80' r='.52' opacity='.32'/><circle cx='52' cy='84' r='.72' opacity='.48'/>\
+</g><g fill='%23f6d98a'>\
+<circle cx='16' cy='33' r='.8' opacity='.55'/><circle cx='58' cy='45' r='.6' opacity='.4'/>\
+<circle cx='34' cy='63' r='.7' opacity='.45'/></g></svg>"),
+    linear-gradient(168deg,#2a3160,#0e1128);
+  --harlequin:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='20' height='24' viewBox='0 0 20 24'>\
+<rect width='20' height='24' fill='%230d0d0c'/><g fill='%23b3201c'>\
+<path d='M0 -12 L10 0 L0 12 L-10 0 Z'/><path d='M20 -12 L30 0 L20 12 L10 0 Z'/>\
+<path d='M0 12 L10 24 L0 36 L-10 24 Z'/><path d='M20 12 L30 24 L20 36 L10 24 Z'/>\
+</g></svg>");
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Inter","SF Pro Display","Segoe UI",system-ui,-apple-system,
+    "Helvetica Neue",Arial,sans-serif;
+  font-weight:700; letter-spacing:.005em;
+  background:#0e1a16; color:var(--ink); overflow:hidden; user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+/* Balatro outlines every glyph; that reads as a cartoon on flat chrome, so the heavy
+   outline is kept only for text sitting directly on the felt (.on) and everything on a
+   panel gets a soft modern shadow instead. */
+.o{ text-shadow:0 1px 2px rgba(0,0,0,.45) }
+.o1{ text-shadow:0 1px 1px rgba(0,0,0,.35) }
+.on{ text-shadow:
+   1px 0 0 rgba(0,0,0,.75),-1px 0 0 rgba(0,0,0,.75),0 1px 0 rgba(0,0,0,.75),
+   0 -1px 0 rgba(0,0,0,.75),0 2px 6px rgba(0,0,0,.5); }
+.up{text-transform:uppercase; letter-spacing:.11em}
+
+/* ============================================================ layout */
+#app{display:flex; height:100vh; gap:12px; padding:12px; background:#0e1a16}
+.side{width:308px; flex:0 0 308px; display:flex; flex-direction:column; gap:10px;
+  overflow-y:auto; scrollbar-width:thin}
+/* Flex items default to shrinking, which squashed the panels and clipped the contract
+   number on short windows. Let them keep their height and scroll the column instead. */
+.side > *{flex-shrink:0}
+.felt{
+  flex:1; position:relative; border-radius:10px; overflow:hidden;
+  background:
+    radial-gradient(ellipse 62% 46% at 24% 16%, var(--felt-1) 0%, transparent 62%),
+    radial-gradient(ellipse 54% 52% at 82% 74%, #3e805f 0%, transparent 58%),
+    radial-gradient(ellipse 46% 40% at 60% 42%, #3a7a60 0%, transparent 60%),
+    var(--felt-3);
+  box-shadow:inset 0 0 0 5px #0b100e, inset 0 0 120px rgba(0,0,0,.4);
+  display:flex; flex-direction:column;
+}
+.felt::before{
+  content:""; position:absolute; inset:-40%;
+  background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.055),transparent 38%,
+    rgba(0,0,0,.07) 62%,transparent);
+  animation:swirl 60s linear infinite; pointer-events:none;
+}
+@keyframes swirl{to{transform:rotate(360deg)}}
+
+/* ============================================================ panels */
+.panel{background:var(--panel); border-radius:12px; padding:11px;
+  box-shadow:0 2px 10px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06)}
+.inset{background:rgba(0,0,0,.26); border-radius:8px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+
+.blind{padding:0; overflow:hidden; background:#8c5c14;
+  box-shadow:0 2px 12px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.14)}
+.blind h1{font-size:24px; font-weight:800; text-align:center; padding:11px 0 10px;
+  letter-spacing:.05em; background:linear-gradient(180deg,#eaa93f,#c8871f)}
+.blind-body{display:flex; align-items:center; gap:11px; padding:11px}
+.chip{width:64px; height:64px; flex:0 0 64px; border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,#f7cd77,#d99a26 62%,#a8721c);
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.22), 0 2px 8px rgba(0,0,0,.3);
+  display:grid; place-items:center; font-size:12px; line-height:1.1; text-align:center}
+.blind-info{flex:1; border-radius:8px; padding:8px; text-align:center;
+  background:rgba(0,0,0,.28); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.cap{font-size:10px; color:#e6c894; text-transform:uppercase; letter-spacing:.12em}
+.big{font-size:32px; font-weight:800; color:var(--red); line-height:1.06; margin:1px 0 2px}
+.big.ok{color:#7ee79a}
+
+.row{display:flex; align-items:center; gap:9px}
+.row .lbl{font-size:11px; line-height:1.25; flex:0 0 74px; color:var(--dim);
+  text-transform:uppercase; letter-spacing:.11em}
+.row .val{flex:1; text-align:center; font-size:28px; font-weight:800; padding:7px 0}
+
+.title{font-size:11px; text-align:center; padding-bottom:9px; color:var(--dim);
+  text-transform:uppercase; letter-spacing:.11em}
+.title small{font-size:11px; color:#6f7a89}
+.cm{display:flex; align-items:stretch; gap:8px}
+.cm .box{flex:1; border-radius:9px; text-align:center; padding:7px 0 6px; font-size:38px;
+  font-weight:800; line-height:1; box-shadow:inset 0 1px 0 rgba(255,255,255,.16),
+  0 2px 8px rgba(0,0,0,.28)}
+.cm .box .t{display:block; font-size:9px; letter-spacing:.16em; opacity:.82;
+  text-transform:uppercase; font-weight:700}
+.cm .blue{background:var(--blue)}
+.cm .red{background:var(--red)}
+.cm .x{align-self:center; font-size:18px; color:#6f7a89}
+
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.stat{border-radius:8px; text-align:center; padding:7px 2px 6px}
+.stat .k{font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.12em}
+.stat .v{font-size:23px; font-weight:800; line-height:1.15}
+.v.blue{color:#63c0ff} .v.red{color:#ff9186} .v.gold{color:#f6c860}
+
+button{
+  font:inherit; font-size:13px; font-weight:700; color:var(--ink); border:0;
+  cursor:pointer; border-radius:9px; padding:11px 10px; letter-spacing:.02em;
+  transition:filter .14s ease, transform .08s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15), 0 2px 8px rgba(0,0,0,.3);
+}
+button:hover{filter:brightness(1.13)}
+button:active{transform:translateY(1px); filter:brightness(.95)}
+.btn-red{background:var(--red)}
+.btn-gold{background:var(--gold); color:#2b1d05}
+.btn-blue{background:var(--blue)}
+.btn-grey{background:#4a525f}
+.spacer{flex:1}
+
+/* ============================================================ felt content */
+.zone{position:relative; z-index:2; display:flex; align-items:center; justify-content:center}
+.zone.opp{height:158px; gap:9px; flex-direction:column; padding-top:12px}
+.zone.mid{flex:1; gap:34px}
+.zone.mine{height:200px; flex-direction:column; gap:8px; padding-bottom:12px}
+
+.tag{background:rgba(8,18,14,.62); border-radius:999px; padding:6px 16px; font-size:11.5px;
+  text-transform:uppercase; letter-spacing:.11em;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px)}
+.tag b{color:#f6c860; letter-spacing:.02em}
+
+.slot{width:var(--cw); height:var(--ch); border-radius:9px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.1); display:grid; place-items:center;
+  font-size:22px; color:rgba(255,255,255,.14)}
+.slot-wrap{display:flex; flex-direction:column; align-items:center; gap:8px}
+.slot-wrap .cap{font-size:9px; color:rgba(255,255,255,.5); text-transform:uppercase;
+  letter-spacing:.16em}
+
+.hand{display:flex; justify-content:center; align-items:flex-end; min-height:calc(var(--ch) + 26px)}
+.hand .card{margin-left:calc(-1 * var(--ovl,13px))}
+.hand .card:first-child{margin-left:0}
+
+/* ============================================================ cards */
+.card{
+  width:var(--cw); height:var(--ch); border-radius:7px; position:relative; overflow:hidden;
+  background:var(--face); color:var(--navy); flex:0 0 auto;
+  font-size:calc(var(--cw) * .22);
+  box-shadow:0 6px 16px rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.45),
+    inset 0 0 0 2px #1b1f35, inset 0 0 0 4px var(--face);
+  transition:transform .11s ease, filter .11s ease, box-shadow .11s ease;
+}
+.card.playable:hover{box-shadow:0 16px 26px rgba(0,0,0,.45), inset 0 0 0 2px #1b1f35,
+  inset 0 0 0 4px var(--face)}
+/* The face is one SVG on a fixed viewBox, so it scales exactly with the card. Corner
+   indices stay HTML and are sized in em off the card's own width. */
+.card svg{position:absolute; inset:0; width:100%; height:100%}
+.card .cnr{position:absolute; line-height:.88; text-align:center; font-size:.72em;
+  font-weight:800; letter-spacing:0}
+.card .cnr.tl{top:6%; left:7.5%}
+.card .cnr.br{bottom:6%; right:7.5%; transform:rotate(180deg)}
+.card .cnr i{display:block; font-style:normal; font-size:.9em; margin-top:.08em}
+.card.playable{cursor:pointer}
+.card.playable:hover{transform:translateY(-20px) scale(1.06) rotate(0deg)!important; z-index:9;
+  filter:brightness(1.07)}
+.card.dim{filter:brightness(.46) saturate(.35) contrast(.9)}
+.card.sp{background:var(--wizface);
+  box-shadow:0 6px 16px rgba(0,0,0,.5), 0 1px 0 rgba(0,0,0,.45),
+    inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
+.card.je{
+  background:#0d0d0c var(--harlequin) 0 0/16px 20px;
+  box-shadow:0 6px 16px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.4),
+    inset 0 0 0 2px #0d0d0c, inset 0 0 0 4px #f2e6cd}
+/* The fan tilt lives in a custom property, not an inline transform, so the keyframe can
+   carry it through — otherwise the card animates flat and then snaps into its rotation.
+   --dx/--dy are measured at deal time so each card flies in from the actual deck pile. */
+.card, .backs .b{transform:rotate(var(--tilt,0deg))}
+.card.predeal, .backs .b.predeal{opacity:0}
+.card.deal, .backs .b.deal{animation:deal .29s cubic-bezier(.18,.85,.3,1) backwards}
+@keyframes deal{
+  from{transform:translate(var(--dx,0px),var(--dy,-56px)) rotate(var(--spin,0deg)) scale(.74);
+       opacity:0}
+}
+
+/* A played card turns over in the air, which needs two faces on one element. Only the
+   Jester uses it, but the wrapper is generic so any card could. */
+.card.flipping{background:none!important; box-shadow:none!important; overflow:visible;
+  perspective:760px}
+/* .fs, not .side: the sidebar already owns .side and its width:308px was landing on these
+   faces, which is what blew the flipping card up to three times its size. */
+.card.flipping > .fl{position:absolute; inset:0; transform-style:preserve-3d}
+.card.flipping .fs{position:absolute; inset:0; border-radius:7px; overflow:hidden;
+  backface-visibility:hidden; background:var(--face);
+  box-shadow:0 6px 16px rgba(0,0,0,.4), inset 0 0 0 2px #1b1f35, inset 0 0 0 4px var(--face)}
+.card.flipping .fs.je{background:#0d0d0c var(--harlequin) 0 0/16px 20px;
+  box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 0 0 2px #0d0d0c, inset 0 0 0 4px #f2e6cd}
+.card.flipping .fs.sp{background:var(--wizface);
+  box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
+.card.flipping .fs.b{transform:rotateY(180deg); background:#a4271f;
+  box-shadow:0 6px 16px rgba(0,0,0,.4), inset 0 0 0 2px #1b1f35,
+             inset 0 0 0 5px #f0e4cf, inset 0 0 0 8px #a4271f}
+.card.flipping .fs.b::after{content:""; position:absolute; inset:9px;
+  background-image:repeating-linear-gradient(45deg,#d8483c 0 4px,transparent 4px 8px),
+                   repeating-linear-gradient(-45deg,#d8483c 0 4px,transparent 4px 8px)}
+/* ---- title screen ----
+   One card, face down, centred on the felt. The setup is present from the start but folded
+   away to zero height so revealing it is a transition rather than a second dialog. */
+.ov.start{background:rgba(6,14,11,.62)}
+.startwrap{display:flex; flex-direction:column; align-items:center; gap:16px}
+.startcard{position:relative; width:176px; height:250px; cursor:pointer; perspective:1000px;
+  filter:drop-shadow(0 16px 34px rgba(0,0,0,.55));
+  transition:transform .16s ease, filter .16s ease}
+.startcard:hover{transform:translateY(-6px); filter:drop-shadow(0 22px 40px rgba(0,0,0,.6))}
+.startcard.turned{cursor:default}
+/* The back is the untransformed face here and the Wizard is the one turned away, so the
+   card is unambiguously face down before any script runs. */
+.startcard .fl{position:absolute; inset:0; transform-style:preserve-3d}
+.startcard .fs{position:absolute; inset:0; border-radius:10px; overflow:hidden;
+  backface-visibility:hidden}
+.startcard .fs.sp{transform:rotateY(180deg); background:var(--wizface);
+  box-shadow:inset 0 0 0 3px #d4a53a, inset 0 0 0 6px #171c38}
+.startcard .fs.b{background:#a4271f;
+  box-shadow:inset 0 0 0 3px #1b1f35, inset 0 0 0 7px #f0e4cf, inset 0 0 0 11px #a4271f}
+.startcard .fs.b::after{content:""; position:absolute; inset:13px;
+  background-image:repeating-linear-gradient(45deg,#d8483c 0 6px,transparent 6px 12px),
+                   repeating-linear-gradient(-45deg,#d8483c 0 6px,transparent 6px 12px)}
+.startcard svg{position:absolute; inset:0; width:100%; height:100%}
+.starthint{font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  color:rgba(255,255,255,.72)}
+.startsetup{max-height:0; opacity:0; overflow:hidden; text-align:center;
+  background:var(--panel); border-radius:14px; padding:0 26px; width:min(430px,88vw);
+  transition:max-height .42s cubic-bezier(.3,.8,.3,1), opacity .3s ease,
+             padding .42s cubic-bezier(.3,.8,.3,1);
+  box-shadow:0 16px 44px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08)}
+.ov.start.ready .startsetup{max-height:340px; opacity:1; padding:18px 26px 20px}
+.startsetup .bidbtn{width:auto; height:42px; padding:0 18px; font-size:14px}
+.startnote{font-size:11.5px; font-weight:600; color:#c3cbd6; line-height:1.6; margin-top:14px}
+
+/* Impact ring thrown off a slammed Wizard. */
+.ring{position:absolute; z-index:8; border-radius:9px; pointer-events:none;
+  box-shadow:0 0 0 3px rgba(255,255,255,.7)}
+
+.back{border-radius:7px; box-shadow:0 5px 14px rgba(0,0,0,.4), inset 0 0 0 2px #1b1f35,
+  inset 0 0 0 5px #f0e4cf, inset 0 0 0 8px #a4271f;
+  background:#a4271f; position:relative; overflow:hidden}
+.back::after{content:""; position:absolute; inset:9px;
+  background-image:
+    repeating-linear-gradient(45deg, #d8483c 0 4px, transparent 4px 8px),
+    repeating-linear-gradient(-45deg, #d8483c 0 4px, transparent 4px 8px);
+}
+.backs{display:flex}
+.backs .b{width:50px; height:71px; margin-left:-22px}
+.backs .b:first-child{margin-left:0}
+
+.trumpbadge{position:absolute; top:16px; left:18px; z-index:3; display:flex; align-items:center;
+  gap:10px; background:rgba(8,18,14,.62); border-radius:12px; padding:9px 14px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px)}
+.trumpbadge .s{font-size:28px; line-height:1}
+.trumpbadge .k{font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em}
+.trumpbadge .v{font-size:13px; text-transform:capitalize}
+/* The flipped trump card, turned on its side and half off the right edge. right:0 puts its
+   centre 43px in and translate(50%) pushes it back onto the edge, so exactly half of the
+   rotated card stays on the felt. --cw/--ch are pinned so it never shrinks with the hand. */
+.trumpcard{position:absolute; top:50%; right:0; z-index:3;
+  --cw:86px; --ch:122px; width:86px; height:122px; pointer-events:none;
+  transform:translate(50%,-50%) rotate(270deg)}
+.trumpcard .card{box-shadow:0 10px 26px rgba(0,0,0,.5), inset 0 0 0 2px #1b1f35,
+  inset 0 0 0 4px var(--face)}
+.trumplabel{position:absolute; right:74px; top:50%; z-index:4; transform:translateY(-50%);
+  font-size:9px; text-transform:uppercase; letter-spacing:.16em; color:rgba(255,255,255,.5);
+  writing-mode:vertical-rl; text-orientation:mixed}
+
+.deckpile{position:absolute; right:18px; bottom:18px; z-index:3; text-align:center}
+.deckpile .b{width:58px; height:82px}
+.deckpile .n{font-size:12px; margin-top:7px; color:rgba(255,255,255,.75)}
+
+/* Floats directly on the felt, so this is the one place the heavy outline still earns
+   its keep — a soft shadow disappears against the swirl. */
+.pop{position:absolute; z-index:9; font-size:40px; font-weight:800; pointer-events:none;
+  letter-spacing:.02em; animation:pop 1.05s ease-out forwards;
+  text-shadow:1px 0 0 rgba(0,0,0,.8),-1px 0 0 rgba(0,0,0,.8),0 1px 0 rgba(0,0,0,.8),
+    0 -1px 0 rgba(0,0,0,.8),0 3px 12px rgba(0,0,0,.55)}
+@keyframes pop{0%{transform:translate(-50%,10px) scale(.7); opacity:0}
+  22%{transform:translate(-50%,-8px) scale(1.14); opacity:1}
+  100%{transform:translate(-50%,-64px) scale(1); opacity:0}}
+.pop.good{color:#8ff0a6} .pop.bad{color:#ff9186}
+
+/* ============================================================ overlays */
+.ov{position:absolute; inset:0; z-index:20; display:grid; place-items:center;
+  background:rgba(6,14,11,.52); animation:fade .15s ease-out}
+@keyframes fade{from{opacity:0}}
+.ov .box{background:var(--panel); border-radius:16px; padding:26px 30px; min-width:380px;
+  max-width:610px; text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08)}
+.ov h2{font-size:25px; font-weight:800; margin-bottom:8px; letter-spacing:-.005em}
+.ov p{font-size:13px; color:#c3cbd6; font-weight:600; line-height:1.65; margin-bottom:14px;
+  letter-spacing:.005em}
+.bidrow{display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin:10px 0 4px}
+.bidbtn{width:58px; height:58px; font-size:22px; font-weight:800; padding:0}
+.bidbtn.no{background:rgba(0,0,0,.24); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  color:#5d6673; text-decoration:line-through; cursor:not-allowed}
+.bidbtn.no:hover{filter:none} .bidbtn.no:active{transform:none; filter:none}
+.suitrow{display:flex; gap:11px; justify-content:center; margin:12px 0}
+.suitbtn{width:72px; height:72px; font-size:34px; background:var(--face)}
+.tbl{width:100%; font-size:14px; margin:12px 0 14px; border-collapse:separate; border-spacing:0 5px}
+.tbl th{font-size:9px; color:var(--dim); padding:2px 8px; text-transform:uppercase;
+  letter-spacing:.14em}
+.tbl td{padding:9px 8px; background:rgba(0,0,0,.24); font-weight:700}
+.tbl td:first-child{border-radius:5px 0 0 5px; text-align:left}
+.tbl td:last-child{border-radius:0 5px 5px 0}
+.good{color:#8ff0a6} .bad{color:#ff9186}
+.rules{text-align:left; font-size:12.5px; font-weight:600; line-height:1.75;
+  letter-spacing:.005em; max-height:56vh; overflow:auto; padding-right:10px; color:#dde3ea}
+.rules h3{font-size:9.5px; margin:15px 0 4px; color:#f6c860; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:800}
+.rules code{background:rgba(0,0,0,.3); padding:1px 6px; border-radius:4px; font-size:11.5px}
+.rules b{color:#fff}
+.log{position:absolute; left:18px; bottom:18px; z-index:3; font-size:10px; font-weight:600;
+  line-height:1.85; color:rgba(255,255,255,.5); max-width:270px; letter-spacing:.01em;
+  max-height:66vh; overflow:hidden; display:flex; flex-direction:column-reverse}
+.log div{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.log .rd{color:rgba(255,255,255,.78); margin-top:5px}
+
+/* ---- solver overlay ---- */
+.solver{position:absolute; top:16px; right:18px; z-index:22; width:224px;
+  background:rgba(8,18,14,.82); border-radius:12px; padding:10px 11px 9px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.11), 0 6px 22px rgba(0,0,0,.4);
+  backdrop-filter:blur(7px)}
+.sv-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+.sv-head span{font-size:9px; text-transform:uppercase; letter-spacing:.16em; color:#8fc3ab}
+.sv-head button{background:none; box-shadow:none; padding:0 4px; font-size:16px; line-height:1;
+  color:#7f8b96; border-radius:4px}
+.sv-head button:hover{filter:none; color:#fff}
+.sv-row{display:flex; align-items:center; gap:7px; padding:3px 0; font-size:11.5px}
+.sv-row.best .sv-k{color:#8ff0a6} .sv-row.best .sv-v{color:#8ff0a6}
+.sv-k{flex:0 0 52px; font-weight:800}
+.sv-bar{flex:1; height:5px; border-radius:3px; background:rgba(255,255,255,.1); overflow:hidden}
+.sv-bar i{display:block; height:100%; background:#4fa8e8; border-radius:3px}
+.sv-row.best .sv-bar i{background:#5fd39a}
+.sv-v{flex:0 0 42px; text-align:right; font-variant-numeric:tabular-nums; color:#cbd4de}
+.sv-note{margin-top:8px; padding-top:7px; font-size:9.5px; font-weight:600; line-height:1.5;
+  color:#7f8b96; border-top:1px solid rgba(255,255,255,.09)}
+.sv-open{position:absolute; top:16px; right:18px; z-index:22; padding:7px 13px; font-size:10px;
+  text-transform:uppercase; letter-spacing:.12em; background:rgba(8,18,14,.72)}
+/* ============================================================ narrow screens
+   Two steps. Under 920px the sidebar stops being a column beside the table and becomes a
+   strip of panels underneath it, so the felt keeps the full width. Under 620px — phones —
+   the strip is trimmed to the four things you actually need mid-hand, everything anchored
+   to a felt corner is pulled in, and the solver becomes a panel over the opponent's end of
+   the table rather than a column stealing a quarter of the screen.
+   Card sizes are not set here: render() measures the felt and solves for them, because the
+   hand has to fit eight cards at any width. */
+@media (max-width:920px){
+  #app{flex-direction:column; height:100dvh; padding:9px; gap:9px}
+  .felt{order:1; min-height:0}
+  .side{order:2; width:auto; flex:0 0 auto; flex-direction:row; align-items:stretch;
+    overflow-x:auto; overflow-y:hidden; gap:8px; padding-bottom:2px}
+  .side > .panel{min-width:max-content}
+  .spacer{display:none}
+  .side > button{align-self:center; white-space:nowrap; padding:11px 14px}
+  .blind h1{font-size:16px; padding:7px 12px 6px}
+  .blind-body{padding:8px; gap:8px}
+  .chip{width:46px; height:46px; flex-basis:46px; font-size:9.5px}
+  .zone.opp{height:auto; padding-top:10px} .zone.mine{height:auto; padding-bottom:10px}
+}
+@media (max-width:620px){
+  #app{padding:6px; gap:6px}
+  .side{gap:6px}
+  .panel.grid{display:none}            /* tricks left / they bid / round / unseen */
+  .log{display:none}                   /* the felt tells the same story with less room */
+  .blind h1{font-size:14px}
+  .side > button{font-size:11px; padding:10px 12px}
+  .trumpbadge{top:8px; left:8px; padding:6px 9px; gap:7px}
+  .trumpbadge .s{font-size:20px} .trumpbadge .v{font-size:11px}
+  .trumpcard{--cw:58px; --ch:82px; width:58px; height:82px}
+  .trumplabel{display:none}
+  .deckpile{right:9px; bottom:9px} .deckpile .b{width:40px; height:57px}
+  .deckpile .n{font-size:10px; margin-top:4px}
+  .backs .b{width:36px; height:51px; margin-left:-16px}
+  .tag{font-size:10px; padding:5px 11px}
+  .zone.mid{gap:18px}
+  /* Full width across the top; the opponent's backs are the cheapest thing to cover, and
+     the dialogs drop to the bottom of the felt so the two never sit on top of each other. */
+  .solver{top:8px; left:8px; right:8px; width:auto; max-height:38vh; overflow-y:auto}
+  .sv-open{top:8px; right:8px}
+  .ov{align-items:end; padding:0 0 10px}
+  .ov .box{min-width:0; width:calc(100vw - 28px); max-width:none; padding:16px 14px;
+    max-height:56vh; overflow-y:auto}
+  .ov h2{font-size:20px} .ov p{font-size:12px}
+  .bidbtn{width:48px; height:48px; font-size:18px}
+  .suitbtn{width:58px; height:58px; font-size:27px}
+  .rules{max-height:62vh; font-size:12px}
+}
+/* No hover on a touch screen, so the lift has to come from the press instead, and the
+   browser must not treat a quick tap on a card as a double-tap zoom. */
+@media (hover:none){
+  .card.playable:hover{transform:rotate(var(--tilt,0deg))!important; filter:none}
+  .card.playable{touch-action:manipulation}
+  .card.playable:active{transform:translateY(-16px) scale(1.05)!important; z-index:9}
+  button{touch-action:manipulation}
+  button:hover{filter:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="side">
+    <div class="panel blind">
+      <h1 id="blindTitle" class="o">Round 1</h1>
+      <div class="blind-body">
+        <div class="chip o1" id="chipText">1<br>card</div>
+        <div class="blind-info">
+          <div class="cap o1">Your contract</div>
+          <div class="big o" id="contractBig">-</div>
+          <div class="cap o1" id="contractSub">place a bid</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <div class="lbl o1">Match<br>score</div>
+        <div class="inset val o" id="myTotal">0</div>
+        <div class="inset val o" id="oppTotal" style="color:#ff9186">0</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="title o1">This Round <small id="dealerTag">you deal</small></div>
+      <div class="cm">
+        <div class="box blue o"><span class="t">Bid</span><span id="bidBox">–</span></div>
+        <div class="x o1">/</div>
+        <div class="box red o"><span class="t">Taken</span><span id="tookBox">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel grid">
+      <div class="stat inset"><div class="k o1">Tricks left</div><div class="v blue o" id="tricksLeft">0</div></div>
+      <div class="stat inset"><div class="k o1">They bid</div><div class="v red o" id="oppBid">–</div></div>
+      <div class="stat inset"><div class="k o1">Round</div><div class="v gold o" id="roundNo">1/16</div></div>
+      <div class="stat inset"><div class="k o1">Unseen</div><div class="v o" id="unseenN">22</div></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn-red o1" onclick="showRules()">Rules &amp; odds</button>
+    <button class="btn-grey o1" onclick="newGame()">New game</button>
+  </aside>
+
+  <main class="felt" id="felt">
+    <div class="trumpbadge"><div class="s o" id="trumpSuit">♠</div>
+      <div><div class="k o1">Trump</div><div class="v o1" id="trumpName">spades</div></div></div>
+    <div class="trumplabel">Trump card</div>
+    <div class="trumpcard" id="trumpCard"></div>
+    <div class="deckpile" id="deckPile"><div class="b back"></div>
+      <div class="n o1" id="deckN">7</div></div>
+    <div class="log" id="log"></div>
+
+    <div class="solver" id="solver" style="display:none">
+      <div class="sv-head"><span id="svTitle">Solver</span>
+        <button id="svClose" title="hide">×</button></div>
+      <div class="sv-body" id="svBody"></div>
+    </div>
+    <button class="sv-open" id="svOpen" style="display:none">Solver</button>
+
+    <div class="zone opp">
+      <div class="tag o1" id="oppTag">Opponent</div>
+      <div class="backs" id="oppBacks"></div>
+    </div>
+    <div class="zone mid">
+      <div class="slot-wrap"><div class="cap o1">Them</div><div id="slotOpp" class="slot">◆</div></div>
+      <div class="slot-wrap"><div class="cap o1">You</div><div id="slotMine" class="slot">◆</div></div>
+    </div>
+    <div class="zone mine">
+      <div class="tag o1" id="myTag">Your hand</div>
+      <div class="hand" id="hand"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   ENGINE — 24 cards: 10 J Q K A in four suits, two Wizards, two Jesters.
+   Card ints: 0..19 normal (suit = c/5, rank = c%5), 20-21 Wizards, 22-23 Jesters.
+   ========================================================================== */
+const NUM_SUITS=4, NUM_RANKS=5, NUM_NORMAL=20;
+const FIRST_WIZARD=20, FIRST_JESTER=22, DECK_SIZE=24, NO_TRUMP=-1;
+const RANKS=["10","J","Q","K","A"], SUITS=["♠","♥","♦","♣"];
+const SUIT_WORDS=["spades","hearts","diamonds","clubs"];
+const DECK=[...Array(DECK_SIZE).keys()];
+
+const suitOf  = c => c<NUM_NORMAL ? (c/NUM_RANKS)|0 : -1;
+const rankOf  = c => c<NUM_NORMAL ? c%NUM_RANKS : -1;
+const isWizard= c => c>=FIRST_WIZARD && c<FIRST_JESTER;
+const isJester= c => c>=FIRST_JESTER;
+const cardName= c => isWizard(c)?"Wizard" : isJester(c)?"Jester" : RANKS[c%NUM_RANKS]+SUITS[(c/NUM_RANKS)|0];
+
+/* Test order encodes the duplicate-card rules: a Wizard LEAD is checked before a
+   Wizard FOLLOW (first Wizard played wins); a Jester FOLLOW before a Jester LEAD
+   (two Jesters go to the leader). Reordering silently changes the game. */
+function trickWinner(lead, follow, trump){
+  if(isWizard(lead))   return 0;
+  if(isWizard(follow)) return 1;
+  if(isJester(follow)) return 0;
+  if(isJester(lead))   return 1;
+  const ls=suitOf(lead), fs=suitOf(follow);
+  if(trump>=0){
+    if(fs===trump && ls!==trump) return 1;
+    if(ls===trump && fs!==trump) return 0;
+  }
+  return (fs===ls && rankOf(follow)>rankOf(lead)) ? 1 : 0;
+}
+function legalPlays(hand, lead){
+  if(lead===null) return hand.slice();
+  const s=suitOf(lead);
+  if(s<0) return hand.slice();                        // Wizard/Jester led: no suit
+  const follow=hand.filter(c=>suitOf(c)===s);
+  if(!follow.length) return hand.slice();
+  return follow.concat(hand.filter(c=>c>=NUM_NORMAL)); // specials always legal
+}
+const roundScore = (bid,tricks) => tricks===bid ? 2+tricks : -Math.abs(tricks-bid);
+function legalBids(size, isDealer, oppBid){
+  const all=[...Array(size+1).keys()];
+  if(!isDealer || oppBid===null) return all;
+  return all.filter(b => b !== size-oppBid);          // the hook
+}
+const PEAK=8;
+function ladderFor(peak){
+  const up=[...Array(peak).keys()].map(i=>i+1);
+  return up.concat(up.slice().reverse());             // peak twice keeps the deal fair
+}
+
+/* ==========================================================================
+   SOLVER — exact alpha-beta over a fully specified deal, bitmask hands,
+   transposition table with EXACT/LOWER/UPPER bound flags.
+   ========================================================================== */
+const EXACT=0, LOWER=1, UPPER=2;
+const SUIT_MASK=[], maskOf=cs=>cs.reduce((m,c)=>m|(1<<c),0);
+for(let s=0;s<NUM_SUITS;s++){let m=0;for(let c=0;c<NUM_NORMAL;c++)if(((c/NUM_RANKS)|0)===s)m|=1<<c;SUIT_MASK.push(m);}
+let SPECIALS=0; for(let c=NUM_NORMAL;c<DECK_SIZE;c++) SPECIALS|=1<<c;
+
+function legalMask(hand, lead){
+  if(lead===null || lead>=NUM_NORMAL) return hand;
+  const f=hand & SUIT_MASK[(lead/NUM_RANKS)|0];
+  return f ? (f | (hand & SPECIALS)) : hand;
+}
+const tricksPayoff = at => at;
+const scorePayoff = (bidA,bidB) => (at,bt) => roundScore(bidA,at)-roundScore(bidB,bt);
+
+class DoubleDummy{
+  constructor(trump, payoff, budget=400000){
+    this.trump=trump; this.payoff=payoff; this.budget=budget; this.nodes=0;
+    this.tt=new Map(); this.order=DoubleDummy.order(trump);
+  }
+  static order(trump){
+    const power=c=>{
+      if(c>=FIRST_JESTER) return -1;
+      if(c>=FIRST_WIZARD) return 100;
+      const r=c%NUM_RANKS;
+      return (trump>=0 && ((c/NUM_RANKS)|0)===trump) ? r+50 : r;
+    };
+    return DECK.slice().sort((a,b)=>power(b)-power(a));
+  }
+  moves(hand, lead){
+    const ok=legalMask(hand, lead), out=[];
+    for(const c of this.order) if((ok>>>c)&1) out.push(c);
+    return out;
+  }
+  search(a,b,aMove,lead,at,bt,alpha,beta){
+    if(a===0 && b===0) return this.payoff(at,bt);
+    if(this.nodes>=this.budget) return this.payoff(at,bt);
+    const key=a+"|"+b+"|"+(aMove?1:0)+"|"+lead+"|"+at;
+    const hit=this.tt.get(key);
+    if(hit!==undefined){
+      if(hit[1]===EXACT) return hit[0];
+      if(hit[1]===LOWER && hit[0]>=beta) return hit[0];
+      if(hit[1]===UPPER && hit[0]<=alpha) return hit[0];
+    }
+    this.nodes++;
+    const a0=alpha, b0=beta, hand=aMove?a:b;
+    let best=aMove?-Infinity:Infinity, v;
+    for(const card of this.moves(hand, lead)){
+      const bit=1<<card;
+      if(lead===null){
+        v = aMove ? this.search(a^bit,b,false,card,at,bt,alpha,beta)
+                  : this.search(a,b^bit,true ,card,at,bt,alpha,beta);
+      }else{
+        const fw = trickWinner(lead,card,this.trump)===1;
+        v = aMove ? this.search(a^bit,b, fw,null,at+(fw?1:0),bt+(fw?0:1),alpha,beta)
+                  : this.search(a,b^bit,!fw,null,at+(fw?0:1),bt+(fw?1:0),alpha,beta);
+      }
+      if(aMove){ if(v>best)best=v; if(best>alpha)alpha=best; }
+      else     { if(v<best)best=v; if(best<beta )beta =best; }
+      if(alpha>=beta) break;
+    }
+    this.tt.set(key,[best, best<=a0?UPPER : best>=b0?LOWER : EXACT]);
+    return best;
+  }
+  value(a,b,aMove=true,lead=null,at=0,bt=0){
+    return this.search(a,b,aMove,lead,at,bt,-Infinity,Infinity);
+  }
+  /* Each root move gets a full window: alpha-beta would return a bound for all but
+     the best, and PIMC averages these across determinizations. */
+  rootValues(a,b,lead=null,at=0,bt=0){
+    const out=new Map();
+    for(const card of this.moves(a,lead)){
+      const bit=1<<card;
+      if(lead===null) out.set(card,this.search(a^bit,b,false,card,at,bt,-Infinity,Infinity));
+      else{
+        const w=trickWinner(lead,card,this.trump)===1;
+        out.set(card,this.search(a^bit,b,w,null,at+(w?1:0),bt+(w?0:1),-Infinity,Infinity));
+      }
+    }
+    return out;
+  }
+}
+
+/* ==========================================================================
+   BOT — PIMC: guess their hand many times, solve each exactly, average.
+   Not GTO (strategy fusion, non-locality) but strong in trick-taking games.
+   ========================================================================== */
+const rnd = n => Math.floor(Math.random()*n);
+function sampleFrom(pool, k){
+  const a=pool.slice();
+  for(let i=0;i<k;i++){ const j=i+rnd(a.length-i); const t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a.slice(0,k);
+}
+const DIFFICULTY={ easy:0, normal:14, hard:34 };
+
+function leadWinProb(card, unseen, trump){
+  if(!unseen.length) return 0;
+  return unseen.filter(x=>trickWinner(card,x,trump)===0).length / unseen.length;
+}
+const cardPower=(c,trump)=> c>=FIRST_JESTER ? -1 : c>=FIRST_WIZARD ? 100
+  : (trump>=0 && ((c/NUM_RANKS)|0)===trump ? (c%NUM_RANKS)+50 : c%NUM_RANKS);
+
+function heuristicBid(hand, unseen, trump, legal, size){
+  let est=hand.reduce((s,c)=>s+leadWinProb(c,unseen,trump),0);
+  const wiz=hand.filter(isWizard).length, jes=hand.filter(isJester).length;
+  est=Math.min(Math.max(est,wiz), size-jes);
+  return legal.slice().sort((x,y)=>Math.abs(x-est)-Math.abs(y-est) || y-x)[0];
+}
+function heuristicPlay(hand, legal, lead, trump, bid, took, unseen){
+  if(legal.length===1) return legal[0];
+  const want = bid-took > 0;
+  if(lead!==null){
+    const win=legal.filter(c=>trickWinner(lead,c,trump)===1);
+    const lose=legal.filter(c=>trickWinner(lead,c,trump)===0);
+    if(want) return (win.length?win:lose).sort((a,b)=>cardPower(a,trump)-cardPower(b,trump))[0];
+    if(lose.length) return lose.sort((a,b)=>cardPower(b,trump)-cardPower(a,trump))[0];
+    return win.sort((a,b)=>cardPower(a,trump)-cardPower(b,trump))[0];
+  }
+  if(want) return legal.slice().sort((a,b)=>cardPower(b,trump)-cardPower(a,trump))[0];
+  const je=legal.filter(isJester);
+  if(je.length) return je[0];
+  return legal.slice().sort((a,b)=>leadWinProb(a,unseen,trump)-leadWinProb(b,unseen,trump))[0];
+}
+
+function botBid(hand, unseen, oppSize, trump, iLead, oppBid, legal, size, samples){
+  if(!samples) return heuristicBid(hand, unseen, trump, legal, size);
+  const dd=new DoubleDummy(trump, tricksPayoff), hm=maskOf(hand), counts=[];
+  for(let i=0;i<samples;i++)
+    counts.push(Math.round(dd.value(hm, maskOf(sampleFrom(unseen,oppSize)), iLead)));
+  let best=legal[0], bv=-Infinity;
+  for(const b of legal){
+    let v=0;
+    for(const t of counts) v += oppBid===null ? roundScore(b,t)
+                                              : roundScore(b,t)-roundScore(oppBid,size-t);
+    v/=counts.length;
+    if(v>bv){ bv=v; best=b; }
+  }
+  return best;
+}
+function botPlay(hand, oppSize, unseen, voids, trump, myBid, oppBid, myT, oppT, lead, legal, samples){
+  if(legal.length===1) return legal[0];
+  if(!samples) return heuristicPlay(hand, legal, lead, trump, myBid, myT, unseen);
+  let pool = voids.size ? unseen.filter(c=>!voids.has(suitOf(c))) : unseen;
+  if(pool.length<oppSize) pool=unseen;
+  const dd=new DoubleDummy(trump, scorePayoff(myBid,oppBid)), hm=maskOf(hand);
+  const total=new Map(legal.map(c=>[c,0]));
+  for(let i=0;i<samples;i++){
+    const vals=dd.rootValues(hm, maskOf(sampleFrom(pool,oppSize)), lead, myT, oppT);
+    for(const c of legal) if(vals.has(c)) total.set(c, total.get(c)+vals.get(c));
+  }
+  let best=legal[0], bv=-Infinity;
+  for(const c of legal){ const v=total.get(c); if(v>bv){ bv=v; best=c; } }
+  return best;
+}
+
+/* ==========================================================================
+   CARD ART — every face is one SVG on a 100x140 viewBox, so it scales exactly with
+   the card and never degrades when a big hand shrinks the cards.
+
+   Ranks are typographic: a serif letterform inside a hairline double frame. That is
+   what keeps K, Q and J apart at 70px wide, where drawn figures turn to mush.
+   Wizards and Jesters are line drawings instead — the four cards that break the suit
+   system should not look like they belong to it.
+   ========================================================================== */
+/* Four-colour deck. Two sets: SUIT_INK is tuned for the cream card face, SUIT_GLOW for
+   the dark felt, where the card inks would go muddy. */
+/* Diamonds are a deep amber rather than a true yellow: pure yellow cannot clear 3:1
+   against the cream card face, and the corner indices are small type. */
+const SUIT_INK  = ["#2b3a67", "#d6302f", "#b8840a", "#1e7a4b"];
+const SUIT_GLOW = ["#dfe6f2", "#ff9186", "#f5c542", "#5fd39a"];
+const RED_INK="#d6302f", GOLD_INK="#d4a53a";
+const inkOf = s => SUIT_INK[s];
+
+const frameSVG = c => `
+  <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="${c}"
+        stroke-width="1" opacity=".28"/>
+  <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="${c}"
+        stroke-width=".6" opacity=".2"/>`;
+
+/* One treatment for all five ranks. "10" is two glyphs, so it drops a size to keep the
+   same optical width as a single letter; the Ace gives its suit more weight. Nothing else
+   varies, which is what makes the ranks read as one set. */
+function rankSVG(label, suit, c){
+  const wide = label.length > 1;
+  return `<svg viewBox="0 0 100 140">${frameSVG(c)}
+    <text x="50" y="${wide?81:84}" text-anchor="middle" fill="${c}"
+          font-family="Georgia,'Times New Roman',serif" font-size="${wide?50:64}">${label}</text>
+    <line x1="31" y1="95" x2="69" y2="95" stroke="${c}" stroke-width=".9" opacity=".38"/>
+    <text x="50" y="117" text-anchor="middle" fill="${c}"
+          font-family="Georgia,serif" font-size="${label==="A"?26:19}">${suit}</text>
+  </svg>`;
+}
+
+/* Wizard — stroked cone and brim, solid jewel at the tip, sparks around it. */
+const wizardSVG = () => `
+<svg viewBox="0 0 100 140">
+  <rect x="10" y="10" width="80" height="120" rx="4" fill="none" stroke="${GOLD_INK}"
+        stroke-width=".8" opacity=".4"/>
+  <g fill="none" stroke="${GOLD_INK}" stroke-width="2.6" stroke-linejoin="round"
+     stroke-linecap="round">
+    <path d="M50 32 L69 88 L31 88 Z"/>
+    <path d="M27 89 C27 84 38 81 50 81 C62 81 73 84 73 89 C73 94 62 97 50 97
+             C38 97 27 94 27 89 Z"/>
+  </g>
+  <circle cx="50" cy="27" r="4.2" fill="${GOLD_INK}"/>
+  <path d="M46 60 L48 67 L55 69 L48 71 L46 78 L44 71 L37 69 L44 67 Z" fill="${GOLD_INK}"/>
+  <circle cx="63" cy="52" r="2.2" fill="${GOLD_INK}" opacity=".85"/>
+  <circle cx="37" cy="46" r="1.6" fill="${GOLD_INK}" opacity=".7"/>
+  <circle cx="66" cy="70" r="1.6" fill="${GOLD_INK}" opacity=".7"/>
+  <text x="50" y="119" text-anchor="middle" fill="${GOLD_INK}" font-family="Georgia,serif"
+        font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
+</svg>`;
+
+/* Jester — the hat from the reference. The lobes there are constant-width bands with a heavy
+   even outline, which is exactly what you get by stroking one centreline twice: black and
+   fat underneath, colour and thinner on top. That is far easier to keep faithful than
+   outlining the band by hand, and the round caps give the tips their blunt finish for free.
+   Coordinates stay in the reference's own 1000-unit space and one transform drops the whole
+   drawing into the card, so the art can be nudged without re-deriving card units.
+   Draw order is left, right, middle, crown: each lobe's black stroke cuts the one behind it,
+   which is where the dividing lines between the three lobes come from. */
+const JES_GRN="#1c8a4e", JES_VIO="#6b3fa0", JES_YEL="#efaf27", JES_LINE="#0d0d0c";
+const JES_W=104, JES_EDGE=27, JES_BELL=50;      // band width, outline per side, bell radius
+
+const jesLobe = (d, fill, bx, by) => `
+  <path d="${d}" fill="none" stroke="${JES_LINE}" stroke-width="${JES_W+JES_EDGE*2}"/>
+  <path d="${d}" fill="none" stroke="${fill}" stroke-width="${JES_W}"/>
+  <circle cx="${bx}" cy="${by}" r="${JES_BELL+JES_EDGE}" fill="${JES_LINE}"/>
+  <circle cx="${bx}" cy="${by}" r="${JES_BELL}" fill="${JES_YEL}"/>`;
+
+const jesterSVG = () => `
+<svg viewBox="0 0 100 140">
+  <g transform="translate(6.5,22.2) scale(0.0888)"
+     stroke-linecap="round" stroke-linejoin="round">
+    ${jesLobe("M455 645 C400 540 340 445 262 428 C195 413 145 480 140 552", JES_GRN, 72, 570)}
+    ${jesLobe("M525 645 C580 540 640 445 718 428 C785 413 835 480 840 552", JES_VIO, 908, 570)}
+    ${jesLobe("M465 655 C470 488 500 355 565 300 C592 277 618 272 624 288", JES_GRN, 668, 256)}
+    <path d="M312 778 L283 615 L488 495 L696 615 L668 778 Z"
+          fill="${JES_YEL}" stroke="${JES_LINE}" stroke-width="${JES_EDGE}"/>
+    <circle cx="374" cy="708" r="26" fill="${JES_LINE}"/>
+    <circle cx="608" cy="706" r="26" fill="${JES_LINE}"/>
+  </g>
+  <text x="50" y="126" text-anchor="middle" fill="#f2e6cd" stroke="${JES_LINE}"
+        stroke-width="2.8" paint-order="stroke" font-family="Georgia,serif"
+        font-size="10" letter-spacing="2.5">JESTER</text>
+</svg>`;
+
+/* ==========================================================================
+   GAME STATE + FLOW  (seat 0 = you, seat 1 = bot; dealer alternates)
+   ========================================================================== */
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let G=null, pendingCard=null, difficulty="normal", peak=PEAK;
+
+/* runRound is a long async chain that awaits human input. Starting a second one while the
+   first is parked on a promise leaves two chains mutating the same G — which is exactly the
+   bug where a round played itself out while the bid prompt was still on screen. Every game
+   gets a generation token and a chain retires as soon as it is no longer the current one. */
+let GEN = 0;
+const stale = gen => !G || G.gen !== gen;
+
+function newGame(){
+  GEN++;
+  pendingCard = null;                                   // drop any parked click handler
+  document.querySelectorAll(".ov").forEach(o=>o.remove());
+  G={ gen:GEN, ladder:ladderFor(peak), idx:0, totals:[0,0], logLines:[] };
+  $("log").innerHTML="";
+  runRound();
+}
+function unseenFor(seat){
+  const seen=new Set(G.hands[seat]); seen.add(G.trumpCard);
+  for(const c of G.played) seen.add(c);
+  if(G.table[1-seat]!==null) seen.add(G.table[1-seat]);
+  return DECK.filter(c=>!seen.has(c));
+}
+/* Newest first in the array; the log is column-reverse, so the newest line sits at the
+   bottom near the action and the oldest gets clipped off the top. */
+function say(t, isRound){
+  G.logLines.unshift({t, rd:!!isRound});
+  $("log").innerHTML=G.logLines.slice(0,26)
+    .map(l=>`<div class="${l.rd?"rd":""}">${l.rd?"":"› "}${l.t}</div>`).join("");
+}
+
+async function runRound(){
+  const gen=G.gen;
+  const size=G.ladder[G.idx], dealer=G.idx%2, lead=1-dealer;
+  const cards=DECK.slice();
+  for(let i=cards.length-1;i>0;i--){ const j=rnd(i+1); const t=cards[i]; cards[i]=cards[j]; cards[j]=t; }
+  G.size=size; G.dealer=dealer; G.leadSeat=lead;
+  G.hands=[cards.slice(0,size).sort((a,b)=>a-b), cards.slice(size,2*size).sort((a,b)=>a-b)];
+  G.trumpCard=cards[2*size];
+  G.bids=[null,null]; G.tricks=[0,0]; G.played=[]; G.table=[null,null];
+  G.voids=new Set();                    // suits YOU have shown a void in (bot's read)
+  G.myVoids=new Set();                  // suits THEY have shown a void in (your read)
+  G.trickNo=0; G.leader=lead; G.thinking=false;
+  G.freshDeal=true; G._lastTable=[null,null];   // animate this deal once, then stop
+  G._from=[null,null];                          // where each side's card started this trick
+  G.logLines=[]; $("log").innerHTML="";         // the log is a record of this round only
+
+  // Paint the freshly dealt hand BEFORE anything is asked. Naming trump off a flipped
+  // Wizard is a decision about your own cards, so you have to be able to see them.
+  G.trump=NO_TRUMP;
+  render();
+
+  if(isWizard(G.trumpCard)){
+    G.trump = dealer===0 ? await askTrump() : botNameTrump();
+    if(stale(gen)) return;
+  }
+  else if(!isJester(G.trumpCard)) G.trump=suitOf(G.trumpCard);
+
+  render();
+  say(`Round ${G.idx+1}: ${size} card${size>1?"s":""}, trump `
+      + `${G.trump<0?"none":SUIT_WORDS[G.trump]} (${cardName(G.trumpCard)} up)`, true);
+  await sleep(360 + size*160);          // let the deal finish before anyone is asked to bid
+  if(stale(gen)) return;
+
+  for(const seat of [lead, dealer]){                 // non-dealer bids first
+    const legal=legalBids(size, seat===dealer, G.bids[1-seat]);
+    if(seat===0){
+      G.bids[0]=await askBid(legal);
+      if(stale(gen)) return;
+    }else{
+      // Flip the flag and yield a frame first: the search is synchronous and blocks
+      // the thread, so the indicator has to be painted before it starts.
+      G.thinking=true; render(); await sleep(340);
+      if(stale(gen)) return;
+      G.bids[1]=botBid(G.hands[1], unseenFor(1), size, G.trump, seat===lead,
+                       G.bids[0], legal, size, DIFFICULTY[difficulty]);
+      G.thinking=false;
+      say(`They bid ${G.bids[1]}`);
+    }
+    render();
+  }
+
+  for(let t=0;t<size;t++){
+    G.trickNo=t; G.table=[null,null];
+    const follower=1-G.leader;
+    for(const seat of [G.leader, follower]){
+      const leadCard = seat===follower ? G.table[G.leader] : null;
+      const legal=legalPlays(G.hands[seat], leadCard);
+      let card;
+      if(seat===0){
+        card=await askCard(legal);
+        if(stale(gen)) return;
+      }else{
+        G.thinking=true; render(); await sleep(300);
+        if(stale(gen)) return;
+        card=botPlay(G.hands[1], G.hands[0].length, unseenFor(1), G.voids, G.trump,
+                     G.bids[1], G.bids[0], G.tricks[1], G.tricks[0], leadCard, legal,
+                     DIFFICULTY[difficulty]);
+        G.thinking=false;
+      }
+      // voids each side may legally infer about the other
+      if(leadCard!==null && suitOf(leadCard)>=0 && card<NUM_NORMAL
+         && suitOf(card)!==suitOf(leadCard)){
+        (seat===0 ? G.voids : G.myVoids).add(suitOf(leadCard));
+      }
+      // measure where the card is sitting now; render() is about to destroy that element
+      G._from[seat]=grabSource(seat, card);
+      G.hands[seat]=G.hands[seat].filter(c=>c!==card);
+      G.table[seat]=card;
+      render();
+      await sleep(seat===0?160:420);
+      if(stale(gen)) return;
+    }
+    const followerWon=trickWinner(G.table[G.leader], G.table[follower], G.trump)===1;
+    const winner=followerWon?follower:G.leader;
+    G.tricks[winner]++;
+    G.played.push(G.table[0], G.table[1]);
+    render();
+    popup(winner===0?"+1 TRICK":"THEIRS", winner===0);
+    say(`Trick ${t+1}: ${cardName(G.table[0])} vs ${cardName(G.table[1])}, ${winner===0?"you":"they"} take it`);
+    await sleep(900);
+    if(stale(gen)) return;
+    G.leader=winner; G.table=[null,null]; render();
+  }
+
+  const sc=[roundScore(G.bids[0],G.tricks[0]), roundScore(G.bids[1],G.tricks[1])];
+  G.totals[0]+=sc[0]; G.totals[1]+=sc[1];
+  render();
+  await showRoundEnd(sc);
+  if(stale(gen)) return;
+
+  G.idx++;
+  if(G.idx>=G.ladder.length) showGameOver();
+  else runRound();
+}
+function botNameTrump(){
+  const len=[0,0,0,0], pow=[0,0,0,0];
+  for(const c of G.hands[1]){ const s=suitOf(c); if(s>=0){ len[s]++; pow[s]+=rankOf(c)+1; } }
+  let best=0; for(let s=1;s<4;s++) if(len[s]>len[best]||(len[s]===len[best]&&pow[s]>pow[best])) best=s;
+  return best;
+}
+
+/* ==========================================================================
+   RENDER
+   ========================================================================== */
+function cardEl(c, playable, dim, tilt, anim, delay){
+  const d=document.createElement("div");
+  d.className="card"+(anim?" predeal":"")+(isWizard(c)?" sp":"")+(isJester(c)?" je":"")
+    +(playable?" playable":"")+(dim?" dim":"");
+  d.style.setProperty("--tilt",(tilt||0)+"deg");
+  d.dataset.c=c;                                          // so the EV tag can find its card
+  if(anim && delay) d.style.animationDelay=delay+"ms";
+  if(c < NUM_NORMAL) d.style.color=SUIT_INK[suitOf(c)];   // corner indices match the suit
+
+  if(isWizard(c))      d.innerHTML=wizardSVG();
+  else if(isJester(c)) d.innerHTML=jesterSVG();
+  else{
+    const r=RANKS[rankOf(c)], s=SUITS[suitOf(c)], ink=inkOf(suitOf(c));
+    d.innerHTML=rankSVG(r, s, ink)
+      +`<div class="cnr tl">${r}<i>${s}</i></div><div class="cnr br">${r}<i>${s}</i></div>`;
+  }
+  return d;
+}
+function render(){
+  if(!G) return;
+  const size=G.size, mine=G.bids[0], theirs=G.bids[1];
+  $("blindTitle").textContent=`Round ${G.idx+1}`;
+  $("chipText").innerHTML=`${size}<br>card${size>1?"s":""}`;
+  $("roundNo").textContent=`${G.idx+1}/${G.ladder.length}`;
+  $("dealerTag").textContent = G.dealer===0 ? "you deal" : "they deal";
+  $("myTotal").textContent=G.totals[0];
+  $("oppTotal").textContent=G.totals[1];
+  $("bidBox").textContent = mine===null?"–":mine;
+  $("tookBox").textContent=G.tricks[0];
+  $("oppBid").textContent = theirs===null?"–":theirs;
+  $("tricksLeft").textContent = size-G.tricks[0]-G.tricks[1];
+  $("unseenN").textContent = unseenFor(0).length;
+  $("trumpSuit").textContent = G.trump<0?"∅":SUITS[G.trump];
+  $("trumpSuit").style.color = G.trump<0?"#fdfbf3":SUIT_GLOW[G.trump];
+  $("trumpName").textContent = G.trump<0?"none":SUIT_WORDS[G.trump];
+  $("deckN").textContent = DECK_SIZE-2*size-1;
+
+  const cb=$("contractBig");
+  if(mine===null){ cb.textContent="-"; cb.className="big o"; $("contractSub").textContent="place a bid"; }
+  else{
+    const need=mine-G.tricks[0];
+    cb.textContent = need===0 ? "✓" : need>0 ? need : "OVER";
+    cb.className="big o"+(need===0?" ok":"");
+    $("contractSub").textContent = need===0 ? `on ${mine}, duck the rest`
+      : need>0 ? `more for +${2+mine}` : `blown by ${-need}`;
+  }
+  const oppTag=$("oppTag");
+  oppTag.innerHTML = G.thinking ? "Opponent is thinking…"
+    : theirs===null ? "Opponent"
+    : `Opponent: bid <b>${theirs}</b>, taken <b>${G.tricks[1]}</b>`;
+  oppTag.style.opacity = G.thinking ? .7 : 1;
+  $("myTag").innerHTML = mine===null ? "Your hand"
+    : `Your hand: bid <b>${mine}</b>, taken <b>${G.tricks[0]}</b>`;
+
+  // render() runs on every state change, and it rebuilds the DOM each time. Only animate
+  // what is actually new, or the whole hand replays the deal on every bot move.
+  const fresh = !!G.freshDeal;
+  const lastTable = G._lastTable || [null,null];
+
+  const backs=$("oppBacks"); backs.innerHTML="";
+  for(let i=0;i<G.hands[1].length;i++){
+    const b=document.createElement("div");
+    b.className="b back"+(fresh?" predeal":"");
+    b.style.setProperty("--tilt",((i%3-1)*1.6)+"deg");
+    b.style.setProperty("--spin",(i%2?-14:14)+"deg");
+    // dealer deals to the non-dealer first, then alternates
+    if(fresh) b.style.animationDelay=(i*160 + (G.leadSeat===1?0:80))+"ms";
+    backs.appendChild(b);
+  }
+  // A trick slot is only rebuilt when the card in it actually changes. render() runs on
+  // every state change — the bot starting to think, a bid landing — and rebuilding here
+  // would destroy the element a play animation is running on and snap the card into place.
+  for(const [slot,seat] of [["slotMine",0],["slotOpp",1]]){
+    const el=$(slot);
+    if(el.dataset.shown===String(G.table[seat])) continue;
+    el.dataset.shown=String(G.table[seat]);
+    el.innerHTML="";
+    if(G.table[seat]===null){ el.className="slot"; el.textContent="◆"; }
+    else{
+      el.className="";
+      const c=cardEl(G.table[seat],false,false,0,false,0);
+      el.appendChild(c);
+      playAnim(c, G.table[seat], seat);
+    }
+  }
+
+  const tc=$("trumpCard"); tc.innerHTML="";
+  if(G.trumpCard!=null) tc.appendChild(cardEl(G.trumpCard,false,false,0,false,0));
+
+  const h=$("hand"); h.innerHTML="";
+  const legal = pendingCard ? pendingCard.legal : null;
+  const sorted=G.hands[0].slice().sort((a,b)=>(suitOf(a)-suitOf(b))||(a-b));
+  // Eight cards at 70px wide need 469px of fan, which no phone has. Solve for the width
+  // that fits instead of picking from two fixed sizes: the cards overlap by a fixed
+  // fraction, so n cards span cw*(n - OVL*(n-1)) and that has to clear the felt.
+  const OVL=.15, n=Math.max(sorted.length,1);
+  const avail=Math.max(180, ($("felt").clientWidth||900) - 26);
+  const cw=Math.max(34, Math.min(sorted.length<=6?86:70,
+                                 Math.floor(avail/(n - OVL*(n-1)))));
+  const root=document.documentElement.style;
+  root.setProperty("--cw", cw+"px");
+  root.setProperty("--ch", Math.round(cw*1.419)+"px");
+  root.setProperty("--ovl", Math.round(cw*OVL)+"px");
+  sorted.forEach((c,i)=>{
+    const ok = legal ? legal.includes(c) : false;
+    // a little fan, so the hand does not look like a spreadsheet row
+    const tilt=(i-(sorted.length-1)/2)*1.7;
+    const el=cardEl(c, ok, legal ? !ok : false, tilt, fresh,
+                    i*160 + (G.leadSeat===0?0:80));
+    el.style.setProperty("--spin",(i%2?14:-14)+"deg");
+    if(ok) el.onclick=()=>{
+      if(!pendingCard) return;                    // guard against a stale handler
+      const r=pendingCard.resolve; pendingCard=null; hideSolver(); r(c);
+    };
+    h.appendChild(el);
+  });
+
+  // Cards start hidden, then a frame later we measure where the deck actually is and fly
+  // each one in from it. Measuring has to happen after layout, hence the two-step.
+  if(fresh) dealFrom($("deckPile"));
+  G.freshDeal=false;
+}
+
+/* ==========================================================================
+   PLAYING A CARD — the card travels from where it actually sat to the trick, and how it
+   travels says what it is: ordinary cards lift out of the fan and are thrown, a Wizard
+   comes down hard, a Jester turns over in the air. The source has to be measured before
+   the card leaves the hand, so grabSource runs at play time and playAnim at render time.
+   ========================================================================== */
+function grabSource(seat, card){
+  const el = seat===0 ? $("hand").querySelector(`.card[data-c="${card}"]`)
+                      : $("oppBacks").lastElementChild;
+  if(!el) return null;
+  const r=el.getBoundingClientRect();
+  if(!r.width) return null;
+  return {r, tilt:parseFloat(el.style.getPropertyValue("--tilt"))||0};
+}
+/* Split the face onto a two-sided wrapper so the card can start face down. */
+function flipWrap(el){
+  const kind=[...el.classList].filter(c=>c==="je"||c==="sp").join(" ");
+  const fl=document.createElement("div"); fl.className="fl";
+  const face=document.createElement("div");
+  face.className="fs f "+kind; face.innerHTML=el.innerHTML;
+  face.style.color=el.style.color;
+  const back=document.createElement("div"); back.className="fs b";
+  fl.appendChild(face); fl.appendChild(back);
+  el.innerHTML=""; el.appendChild(fl); el.classList.add("flipping");
+  return fl;
+}
+function ringAt(el){
+  const felt=$("felt"), f=felt.getBoundingClientRect(), r=el.getBoundingClientRect();
+  const d=document.createElement("div"); d.className="ring";
+  d.style.cssText=`left:${r.left-f.left}px; top:${r.top-f.top}px;
+                   width:${r.width}px; height:${r.height}px`;
+  felt.appendChild(d);
+  d.animate([{transform:"scale(1)",opacity:.85},{transform:"scale(1.45)",opacity:0}],
+    {duration:420, easing:"ease-out"}).onfinish=()=>d.remove();
+}
+
+function playAnim(el, card, seat){
+  const src = G._from && G._from[seat];
+  if(!src) return;
+  const to = el.getBoundingClientRect();
+  if(!to.width) return;
+  // travel between centres, not corners, so the scale term does not drag the card sideways
+  const dx=(src.r.left+src.r.width /2)-(to.left+to.width /2);
+  const dy=(src.r.top +src.r.height/2)-(to.top +to.height/2);
+  const s=src.r.width/to.width, t=src.tilt;
+  // Every keyframe carries the same three functions in the same order. Mixing shapes makes
+  // the browser fall back to matrix interpolation, which is where the wobble came from.
+  const T=(x,y,r,sx,sy)=>`translate(${x}px,${y}px) rotate(${r}deg) scale(${sx},${sy??sx})`;
+  const start=T(dx,dy,t,s), rest=T(0,0,0,1);
+
+  if(isWizard(card)){                                   // SLAM
+    el.animate([
+      {transform:start,                              offset:0},
+      {transform:T(dx*.1, dy*.1, -4, 1.22),          offset:.55},
+      {transform:T(0,0,0, 1.14, .86),                offset:.72},
+      {transform:rest,                               offset:1}
+    ],{duration:400, easing:"cubic-bezier(.55,0,.35,1)"});
+    setTimeout(()=>{
+      if(!el.isConnected) return;                       // the trick moved on without us
+      ringAt(el);
+      $("felt").animate([{transform:"translateY(0px)"},{transform:"translateY(3px)"},
+                         {transform:"translateY(0px)"}],{duration:140, easing:"ease-out"});
+    },288);
+  }
+  else if(isJester(card)){                              // TURN OVER
+    const fl=flipWrap(el);
+    el.animate([
+      {transform:start,                                        offset:0},
+      {transform:T(dx*.5, dy*.5-24, 0, (1+s)/2*1.06),          offset:.5},
+      {transform:rest,                                         offset:1}
+    ],{duration:520, easing:"cubic-bezier(.3,.1,.25,1)"});
+    fl.animate([{transform:"rotateY(180deg)"},{transform:"rotateY(180deg)", offset:.15},
+                {transform:"rotateY(0deg)"}],
+      {duration:520, easing:"cubic-bezier(.4,0,.3,1)"})
+      .onfinish=()=>{
+        if(!el.isConnected) return;
+        el.classList.remove("flipping"); el.innerHTML=fl.firstChild.innerHTML;
+      };
+  }
+  else{                                                 // LIFT & THROW
+    el.animate([
+      {transform:start,                        offset:0},
+      {transform:T(dx, dy-26, 0, s*1.1),       offset:.28},
+      {transform:rest,                         offset:1}
+    ],{duration:460, easing:"cubic-bezier(.5,0,.2,1)"});
+  }
+}
+
+function dealFrom(pile){
+  const from=pile.getBoundingClientRect();
+  requestAnimationFrame(()=>{
+    document.querySelectorAll(".predeal").forEach(el=>{
+      const r=el.getBoundingClientRect();
+      el.style.setProperty("--dx", Math.round(from.left-r.left)+"px");
+      el.style.setProperty("--dy", Math.round(from.top-r.top)+"px");
+      el.classList.remove("predeal");
+      el.classList.add("deal");
+    });
+  });
+}
+function popup(text, good){
+  const p=document.createElement("div");
+  p.className="pop o "+(good?"good":"bad"); p.textContent=text;
+  p.style.left="50%"; p.style.top="44%";
+  $("felt").appendChild(p); setTimeout(()=>p.remove(),1050);
+}
+
+/* ==========================================================================
+   SOLVER OVERLAY — the EV of every option, using only what you can see.
+
+   Same determinization the bot uses to choose: sample opponent hands consistent with
+   your hand, the trump card, everything played, and any suit they have shown a void in;
+   solve each sample exactly; average. It deliberately does NOT peek at their real hand —
+   the numbers are what a strong player could have worked out at the table, not hindsight.
+   ========================================================================== */
+let solverOn = true;
+const SOLVER_SAMPLES = 60;
+
+function unseenForMe(){
+  const seen=new Set(G.hands[0]); seen.add(G.trumpCard);
+  G.played.forEach(c=>seen.add(c));
+  if(G.table[1]!==null) seen.add(G.table[1]);
+  return DECK.filter(c=>!seen.has(c));
+}
+function consistentHand(pool, size, voids){
+  let p = (voids && voids.size) ? pool.filter(c=>!voids.has(suitOf(c))) : pool;
+  if(p.length<size) p=pool;
+  return sampleFrom(p, size);
+}
+
+function bidEV(legal){
+  const unseen=unseenForMe(), size=G.size;
+  const dd=new DoubleDummy(G.trump, tricksPayoff), hm=maskOf(G.hands[0]);
+  const counts=[];
+  for(let i=0;i<SOLVER_SAMPLES;i++)
+    counts.push(Math.round(dd.value(hm, maskOf(sampleFrom(unseen,size)), G.leadSeat===0)));
+  const rows=legal.map(b=>{
+    let v=0;
+    for(const t of counts)
+      v += G.bids[1]===null ? roundScore(b,t) : roundScore(b,t)-roundScore(G.bids[1],size-t);
+    return {key:b, label:String(b), ev:v/counts.length};
+  });
+  const hits=new Map();
+  counts.forEach(t=>hits.set(t,(hits.get(t)||0)+1));
+  const mode=[...hits.entries()].sort((a,b)=>b[1]-a[1])[0];
+  return {rows, note:`${counts.length} deals · avg ${(counts.reduce((a,b)=>a+b,0)/counts.length).toFixed(1)}`
+    + ` tricks · most often ${mode[0]} (${Math.round(mode[1]/counts.length*100)}%)`};
+}
+
+function cardEV(legal){
+  const unseen=unseenForMe(), oppSize=G.hands[1].length;
+  if(oppSize<1 || unseen.length<oppSize) return {rows:[], note:"nothing to sample"};
+  const dd=new DoubleDummy(G.trump, scorePayoff(G.bids[0],G.bids[1])), hm=maskOf(G.hands[0]);
+  const tot=new Map(legal.map(c=>[c,0]));
+  let n=0;
+  for(let i=0;i<SOLVER_SAMPLES;i++){
+    const vals=dd.rootValues(hm, maskOf(consistentHand(unseen,oppSize,G.myVoids)),
+                             G.table[1], G.tricks[0], G.tricks[1]);
+    for(const c of legal) if(vals.has(c)) tot.set(c, tot.get(c)+vals.get(c));
+    n++;
+  }
+  const rows=legal.map(c=>({key:c, label:cardName(c), ev:tot.get(c)/n}));
+  const voids=[...(G.myVoids||[])].map(s=>SUIT_WORDS[s]);
+  return {rows, note:`${n} deals · ${unseen.length} cards unseen`
+    + (voids.length?` · they are void in ${voids.join(", ")}`:"")};
+}
+
+function showSolver(title, result){
+  const box=$("solver");
+  if(!solverOn || !result.rows.length){ box.style.display="none"; return; }
+  box.style.display="block";
+  const best=Math.max(...result.rows.map(r=>r.ev));
+  const worst=Math.min(...result.rows.map(r=>r.ev));
+  const span=Math.max(best-worst, .001);
+  const rows=result.rows.slice().sort((a,b)=>b.ev-a.ev).map(r=>{
+    const top=r.ev>=best-1e-9;
+    const w=Math.round((r.ev-worst)/span*100);
+    return `<div class="sv-row${top?" best":""}">
+      <span class="sv-k">${r.label}</span>
+      <span class="sv-bar"><i style="width:${w}%"></i></span>
+      <span class="sv-v">${r.ev>=0?"+":""}${r.ev.toFixed(2)}</span></div>`;
+  }).join("");
+  $("svTitle").textContent=title;
+  $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`;
+}
+const hideSolver = () => { $("solver").style.display="none"; };
+
+/* Solving blocks the thread for a few hundred ms on the big rounds, so say so first. */
+function solving(title){
+  if(!solverOn) return;
+  const box=$("solver"); box.style.display="block";
+  $("svTitle").textContent=title;
+  $("svBody").innerHTML=`<div class="sv-note">solving…</div>`;
+}
+
+/* ==========================================================================
+   PROMPTS
+   ========================================================================== */
+function overlay(html){
+  const d=document.createElement("div"); d.className="ov";
+  d.innerHTML=`<div class="box">${html}</div>`;
+  $("felt").appendChild(d); return d;
+}
+function askCard(legal){
+  return new Promise(res=>{
+    pendingCard={legal,resolve:res}; render();
+    if(!solverOn){ hideSolver(); return; }
+    solving("Card EV");
+    setTimeout(()=>{
+      if(!pendingCard) return;                  // they played before the solve came back
+      showSolver("Card EV", cardEV(legal));
+    },0);
+  });
+}
+function askBid(legal){
+  const size=G.size, forbidden = G.dealer===0 && G.bids[1]!==null ? size-G.bids[1] : null;
+  return new Promise(res=>{
+    const all=[...Array(size+1).keys()];
+    const ov=overlay(`<h2 class="o">Your bid</h2>
+      <p>${G.dealer===0
+        ? `They bid <b>${G.bids[1]}</b>. The hook forbids you <b>${forbidden}</b>.`
+        : `You bid first, and your bid forbids them <b>${size} − your bid</b>.`}
+        <br>Exactly right scores <b>2 + tricks</b>. Anything else loses the difference.</p>
+      <div class="bidrow">${all.map(b=>
+        `<button class="bidbtn o ${legal.includes(b)?"btn-blue":"no"}" data-b="${b}">${b}</button>`).join("")}</div>`);
+    // Bids are ranked in the solver panel only. Printing the number under every button
+    // turned the bid row into a lookup table and stopped it reading as a choice.
+    if(solverOn){
+      solving("Bid EV");
+      setTimeout(()=>{
+        if(!ov.isConnected) return;             // they bid before the solve came back
+        showSolver("Bid EV", bidEV(legal));
+      },0);
+    }
+    ov.querySelectorAll(".bidbtn").forEach(btn=>{
+      const b=+btn.dataset.b;
+      if(legal.includes(b)) btn.onclick=()=>{
+        ov.remove(); hideSolver(); say(`You bid ${b}`); res(b);
+      };
+    });
+  });
+}
+function askTrump(){
+  return new Promise(res=>{
+    const ov=overlay(`<h2 class="o">A Wizard flipped</h2>
+      <p>You deal, so you name trump before either bid, and they see your choice.
+      Naming your real strength tells them exactly where you are strong.</p>
+      <div class="suitrow">${SUITS.map((s,i)=>
+        `<button class="suitbtn" style="color:${SUIT_INK[i]}" data-s="${i}">${s}</button>`
+        ).join("")}</div>`);
+    ov.querySelectorAll(".suitbtn").forEach(b=>
+      b.onclick=()=>{ ov.remove(); res(+b.dataset.s); });
+  });
+}
+function showRoundEnd(sc){
+  const made=[G.tricks[0]===G.bids[0], G.tricks[1]===G.bids[1]];
+  popup((sc[0]>=0?"+":"")+sc[0], sc[0]>=0);
+  return new Promise(res=>{
+    const ov=overlay(`<h2 class="o">Round ${G.idx+1} over</h2>
+      <table class="tbl"><tr><th></th><th>Bid</th><th>Took</th><th>Points</th><th>Total</th></tr>
+      <tr><td>You</td><td>${G.bids[0]}</td><td>${G.tricks[0]}</td>
+        <td class="${sc[0]>=0?"good":"bad"}">${sc[0]>=0?"+":""}${sc[0]}</td><td>${G.totals[0]}</td></tr>
+      <tr><td>Them</td><td>${G.bids[1]}</td><td>${G.tricks[1]}</td>
+        <td class="${sc[1]>=0?"good":"bad"}">${sc[1]>=0?"+":""}${sc[1]}</td><td>${G.totals[1]}</td></tr></table>
+      <p>${made[0] ? "You made your bid; they could not."
+        : made[1] ? "They made theirs. At most one of you ever can."
+        : "Neither of you made it. Both bids missed the split."}</p>
+      <button class="btn-gold o1" style="padding:12px 28px">Next round</button>`);
+    ov.querySelector("button").onclick=()=>{ ov.remove(); res(); };
+  });
+}
+function showGameOver(){
+  const [a,b]=G.totals;
+  overlay(`<h2 class="o">${a>b?"You win":a<b?"You lose":"A draw"}</h2>
+    <table class="tbl"><tr><td>You</td><td style="text-align:right">${a}</td></tr>
+    <tr><td>Them</td><td style="text-align:right">${b}</td></tr></table>
+    <p>${G.ladder.length} rounds, ${G.ladder.reduce((x,y)=>x+y,0)} tricks. Each of you dealt
+    every hand size exactly once, so the seats were even.</p>
+    <button class="btn-gold o1" style="padding:12px 28px" onclick="newGame()">Play again</button>`);
+}
+function showRules(){
+  const ov=overlay(`<h2 class="o">Up the River</h2>
+    <div class="rules">
+      <h3>Deck</h3>24 cards: <code>10 J Q K A</code> in four suits, plus <b>2 Wizards</b> and <b>2 Jesters</b>.
+      <h3>Ladder</h3>Hand sizes 1,2,…,${peak},${peak},…,2,1. The peak is played twice so each player
+      deals every size exactly once.
+      <h3>Bidding</h3>Non-dealer bids first. <b>The dealer may not make the two bids total the hand
+      size.</b> Tricks always sum to the hand size and bids never do, so <b>at most one player can
+      make their bid.</b>
+      <h3>Trick order</h3>1. the <b>first</b> Wizard played · 2. highest trump · 3. highest card of
+      the led suit · 4. the leader, if both cards are Jesters.<br>
+      You must follow suit, but a Wizard or Jester is <b>always</b> legal.
+      <h3>The specials are conditional</h3>
+      A Wizard <b>led</b> always wins; a Wizard <b>followed</b> loses to a Wizard lead.<br>
+      A Jester <b>followed</b> always loses; a Jester <b>led</b> loses unless they answer with the
+      other Jester.<br>Only holding <b>both</b> copies guarantees anything.
+      <h3>Scoring</h3>Made exactly: <code>2 + tricks</code>. Missed: <code>−|tricks − bid|</code>.
+      <h3>Odds: do they hold a given card?</h3>
+      <table class="tbl"><tr><th>Round</th><th>Unseen</th><th>Any card</th><th>≥1 of a pair</th></tr>
+      ${[[1,22,"4.5%","9.1%"],[2,21,"9.5%","18.6%"],[3,20,"15%","28.4%"],[4,19,"21.1%","38.6%"],
+         [5,18,"27.8%","49.0%"],[6,17,"35.3%","59.6%"],[7,16,"43.8%","70.0%"],[8,15,"53.3%","80.0%"]]
+        .map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</table>
+      From round 6 up, assume a Wizard is out there.
+    </div>
+    <button class="btn-blue o1" style="width:100%;margin-top:14px" id="rClose">Back</button>`);
+  $("rClose").onclick=()=>ov.remove();
+}
+
+/* ==========================================================================
+   START SCREEN
+   ========================================================================== */
+/* The title screen is one card face down on the felt. Clicking it turns it over, and the
+   Wizard it turns into is the same drawing the deck uses — the game introduces itself with
+   its own art rather than with a dialog. The setup only appears once the turn has finished. */
+function startScreen(){
+  const ov=document.createElement("div");
+  ov.className="ov start";
+  ov.innerHTML=`
+    <div class="startwrap">
+      <div class="startcard" id="startCard">
+        <div class="fl"><div class="fs f sp">${wizardSVG()}</div><div class="fs b"></div></div>
+      </div>
+      <div class="starthint o" id="startHint">Up the River — tap the card</div>
+      <div class="startsetup" id="startSetup">
+        <div class="cap o1">Game length</div>
+        <div class="bidrow" id="lenRow">
+          <button class="bidbtn btn-blue o" data-p="4">Quick · 8 rounds</button>
+          <button class="bidbtn btn-blue o" data-p="8">Full · 16 rounds</button>
+        </div>
+        <div class="cap o1" style="margin-top:13px">Opponent</div>
+        <div class="bidrow" id="difRow">
+          <button class="bidbtn" style="background:#2f8f5f" data-d="easy">Easy</button>
+          <button class="bidbtn btn-blue" data-d="normal">Normal</button>
+          <button class="bidbtn btn-red" data-d="hard">Hard</button>
+        </div>
+        <p class="startnote">Easy plays on hand evaluation alone. Normal and Hard guess your
+        hand many times over and solve each guess exactly. Hard just guesses more.</p>
+      </div>
+    </div>`;
+  $("felt").appendChild(ov);
+
+  const card=$("startCard"), fl=card.querySelector(".fl");
+  let turned=false;
+  card.onclick=()=>{
+    if(turned) return;
+    turned=true;
+    card.classList.add("turned");
+    fl.animate([{transform:"rotateY(0deg)"},{transform:"rotateY(180deg)"}],
+      {duration:620, easing:"cubic-bezier(.34,.08,.2,1)", fill:"forwards"});
+    card.animate([{transform:"translateY(0px) scale(1)"},
+                  {transform:"translateY(-12px) scale(1.07)", offset:.5},
+                  {transform:"translateY(0px) scale(1)"}],
+      {duration:620, easing:"ease-in-out"});
+    $("startHint").textContent="Choose your game";
+    setTimeout(()=>ov.classList.add("ready"), 430);
+  };
+  ov.querySelectorAll("#lenRow button").forEach(b=>b.onclick=()=>{
+    peak=+b.dataset.p;
+    ov.querySelectorAll("#lenRow button").forEach(x=>x.style.filter="brightness(.5)");
+    b.style.filter="brightness(1)";
+  });
+  ov.querySelectorAll("#difRow button").forEach(b=>b.onclick=()=>{
+    difficulty=b.dataset.d; ov.remove(); newGame();
+  });
+}
+/* Card sizes are solved against the felt width, so a rotation or a window drag has to
+   re-solve them. Debounced, because render() rebuilds the hand. */
+let resizeT=null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(resizeT);
+  resizeT=setTimeout(()=>{ if(G && G.hands) render(); }, 120);
+});
+
+$("svClose").onclick=()=>{ solverOn=false; hideSolver(); $("svOpen").style.display="block"; };
+$("svOpen").onclick=()=>{
+  solverOn=true; $("svOpen").style.display="none";
+  if(pendingCard){
+    showSolver("Card EV", cardEV(pendingCard.legal));
+  }else{
+    if(document.querySelector(".ov") && G && G.bids && G.bids[0]===null)
+      showSolver("Bid EV", bidEV(legalBids(G.size, G.dealer===0, G.bids[1])));
+  }
+};
+
+startScreen();
+</script>
+</body>
+</html>
