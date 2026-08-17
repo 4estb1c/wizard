@@ -1,7 +1,7 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><title>Felt tones</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0e1a16;font-family:Inter,"Segoe UI",system-ui,Arial,sans-serif;
+body{background:#0e1a16;font-family:Inter,'Segoe UI',system-ui,Arial,sans-serif;
  font-weight:700;color:#fdfbf3;padding:26px 30px 60px}
 h1{font-size:20px;margin-bottom:3px}
 .sub{font-size:12px;font-weight:600;color:#9fbdae;margin-bottom:22px;max-width:880px;line-height:1.65}
@@ -15,6 +15,9 @@ h1{font-size:20px;margin-bottom:3px}
  background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.055),transparent 38%,
    rgba(0,0,0,.07) 62%,transparent)}
 .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:soft-light;opacity:.85}
+.g1{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.4'/></svg>"),repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);background-size:140px 140px,auto,auto}
+.g2{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.4'/></svg>"),repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);background-size:140px 140px,auto,auto}
+.g3{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.55'/></svg>"),repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);background-size:140px 140px,auto,auto}
 .hand{position:absolute;left:0;right:0;bottom:20px;display:flex;justify-content:center;align-items:flex-end}
 .card{width:86px;height:122px;border-radius:7px;position:relative;overflow:hidden;flex:0 0 auto;
  margin-left:-13px;background:#fdfaf0;font-size:19px;
@@ -29,21 +32,9 @@ h1{font-size:20px;margin-bottom:3px}
  box-shadow:0 6px 16px rgba(0,0,0,.45),inset 0 0 0 2px #4a2f73,inset 0 0 0 4px #e3d1a9}
 </style></head><body>
 <h1>Felt tones</h1>
-<div class="sub">Same table in every panel — same three bloom gradients, same swirl, same inner
-shadow — with the greens swapped, and three of them given an actual fabric surface. Real cards
-on each, both specials included, because what matters is how the parchment and the navy sit
-against the ground rather than how the green looks alone.</div>
+<div class="sub">Same table in every panel, same three bloom gradients, same swirl, same inner shadow, with the greens swapped and three of them given an actual fabric surface. Real cards on each, both specials included, because what matters is how the parchment and the navy sit against the ground rather than how the green looks on its own.</div>
 <div class="opt"><h3>1. Baize</h3><div class="n">what you have</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #4b8f70 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #3e805f 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #3a7a60 0%, transparent 60%),
-    #2a6350">
-  <div class="swirl"></div>
-  
-  <div class="hand">
-    <div class="card wiz">
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #4b8f70 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #3e805f 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #3a7a60 0%, transparent 60%),#2a6350"><div class="swirl"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz2" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -66,8 +57,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs3"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -97,8 +87,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -108,8 +97,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -119,8 +107,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -130,8 +117,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -141,23 +127,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>The current table. A true mid green with a cool bloom top left, and no texture at all.</p></div><div class="opt"><h3>2. Woven baize</h3><div class="n">same green, real nap</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #4b8f70 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #3e805f 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #3a7a60 0%, transparent 60%),
-    #2a6350">
-  <div class="swirl"></div>
-  <div class="grain" style="background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.4'/></svg>"),
-     repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
-     repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
-     background-size:140px 140px,auto,auto"></div>
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>The current table. A true mid green with a cool bloom top left, and no texture at all.</p></div>
+<div class="opt"><h3>2. Woven baize</h3><div class="n">same green, real nap</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #4b8f70 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #3e805f 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #3a7a60 0%, transparent 60%),#2a6350"><div class="swirl"></div><div class="grain g1"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz4" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -180,8 +152,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs5"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -211,8 +182,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -222,8 +192,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -233,8 +202,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -244,8 +212,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -255,23 +222,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>Your exact green with a fabric surface over it: fractal noise for the fibres plus a fine cross weave, blended in soft-light so it darkens the pigment rather than greying it. Costs nothing to ship — the browser generates the noise.</p></div><div class="opt"><h3>3. Woven pine</h3><div class="n">darker, real nap</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #3c7a5e 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #326b52 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #2f6650 0%, transparent 60%),
-    #1f4f40">
-  <div class="swirl"></div>
-  <div class="grain" style="background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.4'/></svg>"),
-     repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
-     repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
-     background-size:140px 140px,auto,auto"></div>
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>Your exact green with a fabric surface over it: fractal noise for the fibres plus a fine cross weave, blended in soft-light so it darkens the pigment rather than greying it. Nothing is downloaded, the browser generates the noise itself.</p></div>
+<div class="opt"><h3>3. Woven pine</h3><div class="n">darker, real nap</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #3c7a5e 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #326b52 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #2f6650 0%, transparent 60%),#1f4f40"><div class="swirl"></div><div class="grain g2"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz6" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -294,8 +247,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs7"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -325,8 +277,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -336,8 +287,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -347,8 +297,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -358,8 +307,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -369,23 +317,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>The same nap over a deeper green. The texture reads more clearly the darker the ground, and the cards gain contrast.</p></div><div class="opt"><h3>4. Coarse wool</h3><div class="n">heavier weave</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #43866a 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #3a785e 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #377559 0%, transparent 60%),
-    #265c4b">
-  <div class="swirl"></div>
-  <div class="grain" style="background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.5'/></svg>"),
-     repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
-     repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
-     background-size:140px 140px,auto,auto"></div>
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>The same nap over a deeper green. Texture reads more clearly the darker the ground, and the cards gain contrast.</p></div>
+<div class="opt"><h3>4. Coarse wool</h3><div class="n">heavier weave</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #43866a 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #3a785e 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #377559 0%, transparent 60%),#265c4b"><div class="swirl"></div><div class="grain g3"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz8" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -408,8 +342,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs9"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -439,8 +372,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -450,8 +382,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -461,8 +392,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -472,8 +402,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -483,20 +412,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>Bigger fibres and a stronger blend — closer to a wool card cloth than a snooker baize. The most tactile and the busiest.</p></div><div class="opt"><h3>5. Emerald</h3><div class="n">brighter, no texture</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #56a87d 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #45936a 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #429069 0%, transparent 60%),
-    #2c7357">
-  <div class="swirl"></div>
-  
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>Bigger fibres and a stronger blend, closer to a wool card cloth than a snooker baize. Most tactile, and the busiest.</p></div>
+<div class="opt"><h3>5. Emerald</h3><div class="n">brighter, no texture</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #56a87d 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #45936a 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #429069 0%, transparent 60%),#2c7357"><div class="swirl"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz10" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -519,8 +437,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs11"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -550,8 +467,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -561,8 +477,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -572,8 +487,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -583,8 +497,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -594,20 +507,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>More pigment in the same direction. Livelier, and the parchment Jester pops hardest against it.</p></div><div class="opt"><h3>6. Teal</h3><div class="n">shifted toward blue</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #3f9490 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #34827f 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #327f7c 0%, transparent 60%),
-    #235f5e">
-  <div class="swirl"></div>
-  
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>More pigment in the same direction. Livelier, and the parchment Jester pops hardest against it.</p></div>
+<div class="opt"><h3>6. Teal</h3><div class="n">shifted toward blue</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #3f9490 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #34827f 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #327f7c 0%, transparent 60%),#235f5e"><div class="swirl"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz12" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -630,8 +532,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs13"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -661,8 +562,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -672,8 +572,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -683,8 +582,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -694,8 +592,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -705,20 +602,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>Green with the yellow taken out. Cools the whole table and sits closest to the Wizard's navy.</p></div><div class="opt"><h3>7. Moss</h3><div class="n">shifted toward yellow</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #6d9455 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #5d8449 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #5a8148 0%, transparent 60%),
-    #446332">
-  <div class="swirl"></div>
-  
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>Green with the yellow taken out. Cools the whole table and sits closest to the Wizard's navy.</p></div>
+<div class="opt"><h3>7. Moss</h3><div class="n">shifted toward yellow</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #6d9455 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #5d8449 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #5a8148 0%, transparent 60%),#446332"><div class="swirl"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz14" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -741,8 +627,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs15"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -772,8 +657,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -783,8 +667,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -794,8 +677,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -805,8 +687,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -816,20 +697,9 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>Green with the blue taken out. Warmest of the set and the most like a card room rather than a casino.</p></div><div class="opt"><h3>8. Slate</h3><div class="n">desaturated</div>
-  
-<div class="felt" style="background:
-    radial-gradient(ellipse 62% 46% at 24% 16%, #587a6c 0%, transparent 62%),
-    radial-gradient(ellipse 54% 52% at 82% 74%, #4a6b5e 0%, transparent 58%),
-    radial-gradient(ellipse 46% 40% at 60% 42%, #48695c 0%, transparent 60%),
-    #35504a">
-  <div class="swirl"></div>
-  
-  <div class="hand">
-    <div class="card wiz">
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>Green with the blue taken out. Warmest of the set, more card room than casino.</p></div>
+<div class="opt"><h3>8. Slate</h3><div class="n">desaturated</div>
+<div class="felt" style="background:radial-gradient(ellipse 62% 46% at 24% 16%, #587a6c 0%, transparent 62%),radial-gradient(ellipse 54% 52% at 82% 74%, #4a6b5e 0%, transparent 58%),radial-gradient(ellipse 46% 40% at 60% 42%, #48695c 0%, transparent 60%),#35504a"><div class="swirl"></div><div class="hand"><div class="card wiz">
 <svg viewBox="0 0 100 140">
   <defs>
     <mask id="wz16" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
@@ -852,8 +722,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="66" cy="70" r="1.6" fill="#d4a53a" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="#d4a53a" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg></div>
-    <div class="card jes">
+</svg></div><div class="card jes">
 <svg viewBox="0 0 100 140">
   <defs>
     <clipPath id="cjs17"><path d="M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z"/></clipPath>
@@ -883,8 +752,7 @@ against the ground rather than how the green looks alone.</div>
   <circle cx="64.76" cy="28" r="4"   fill="#5b3b8f"/>
   <text x="50" y="119" text-anchor="middle" fill="#5b3b8f" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
-</svg></div>
-    <div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
+</svg></div><div class="card" style="color:#2b3a67"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#2b3a67"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#2b3a67"
@@ -894,8 +762,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#2b3a67" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#2b3a67"
           font-family="Georgia,serif" font-size="26">♠</text>
-  </svg>
-  <div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">A<i>♠</i></div></div><div class="card" style="color:#d6302f"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#d6302f"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#d6302f"
@@ -905,8 +772,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#d6302f" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#d6302f"
           font-family="Georgia,serif" font-size="19">♥</text>
-  </svg>
-  <div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">K<i>♥</i></div></div><div class="card" style="color:#b8840a"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#b8840a"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#b8840a"
@@ -916,8 +782,7 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#b8840a" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#b8840a"
           font-family="Georgia,serif" font-size="19">♦</text>
-  </svg>
-  <div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
+  </svg><div class="cnr">Q<i>♦</i></div></div><div class="card" style="color:#1e7a4b"><svg viewBox="0 0 100 140">
   <rect x="9" y="9" width="82" height="122" rx="4" fill="none" stroke="#1e7a4b"
         stroke-width="1" opacity=".28"/>
   <rect x="13" y="13" width="74" height="114" rx="2" fill="none" stroke="#1e7a4b"
@@ -927,8 +792,5 @@ against the ground rather than how the green looks alone.</div>
     <line x1="31" y1="95" x2="69" y2="95" stroke="#1e7a4b" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="#1e7a4b"
           font-family="Georgia,serif" font-size="19">♣</text>
-  </svg>
-  <div class="cnr">J<i>♣</i></div></div>
-  </div>
-</div><p>Most of the pigment removed. Nearly neutral, so every card colour reads at full strength.</p></div>
+  </svg><div class="cnr">J<i>♣</i></div></div></div></div><p>Most of the pigment removed. Nearly neutral, so every card colour reads at full strength.</p></div>
 </body></html>

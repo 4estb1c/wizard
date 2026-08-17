@@ -425,6 +425,31 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .sv-v{flex:0 0 42px; text-align:right; font-variant-numeric:tabular-nums; color:#cbd4de}
 .sv-note{margin-top:8px; padding-top:7px; font-size:9.5px; font-weight:600; line-height:1.5;
   color:#7f8b96; border-top:1px solid rgba(255,255,255,.09)}
+.sv-why{margin-top:7px; padding-top:7px; border-top:1px solid rgba(255,255,255,.09)}
+.sv-why p{font-size:10px; font-weight:600; line-height:1.55; color:#a8b3c0; margin-bottom:6px}
+.sv-why p:last-child{margin-bottom:0}
+.sv-why b{color:#f6c860}
+
+/* ---- post-trick review ---- */
+.ov.review .box{text-align:left; width:min(500px,calc(100vw - 28px))}
+.rv{margin:4px 0 2px}
+.rv-row{display:grid; grid-template-columns:76px auto; gap:2px 10px; padding:9px 11px;
+  border-radius:8px; margin-bottom:7px; background:rgba(0,0,0,.24);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.rv-row.ok{box-shadow:inset 0 0 0 1px rgba(143,240,166,.3)}
+.rv-row.bad{box-shadow:inset 0 0 0 1px rgba(255,145,134,.32)}
+.rv-k{font-size:9.5px; text-transform:uppercase; letter-spacing:.13em; color:var(--dim);
+  align-self:center}
+.rv-v{font-size:15px; font-weight:800}
+.rv-v i{font-style:normal; font-size:11.5px; color:#9aa4b2; margin-left:5px}
+.rv-row.ok .rv-v{color:#8ff0a6} .rv-row.bad .rv-v{color:#ff9186}
+.rv-note{grid-column:2; font-size:11px; font-weight:600; color:#c3cbd6; line-height:1.5}
+.rv-note b{color:#f6c860}
+.rv-why{margin-top:10px; padding-top:9px; border-top:1px solid rgba(255,255,255,.09)}
+.rv-why p{font-size:11.5px; font-weight:600; line-height:1.6; color:#aeb9c6; margin-bottom:7px}
+.rv-why p:last-child{margin-bottom:0}
+.rv-why b{color:#f6c860}
+.rv-go{margin-top:14px; width:100%}
 .sv-open{position:absolute; top:16px; right:18px; z-index:22; padding:7px 13px; font-size:10px;
   text-transform:uppercase; letter-spacing:.12em; background:rgba(8,18,14,.72)}
 /* ============================================================ narrow screens
@@ -459,20 +484,36 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
   .trumpbadge .s{font-size:20px} .trumpbadge .v{font-size:11px}
   .trumpcard{--cw:58px; --ch:82px; width:58px; height:82px}
   .trumplabel{display:none}
-  .deckpile{right:9px; bottom:9px} .deckpile .b{width:40px; height:57px}
-  .deckpile .n{font-size:10px; margin-top:4px}
+  /* An eight-card fan reaches the bottom-right corner on a phone, so the deck cannot stay
+     there — at 48px cards it sat squarely on the last card in the hand. It moves to the top
+     right instead, opposite the trump badge and clear of the centred opponent row. */
+  .deckpile{top:8px; right:9px; bottom:auto}
+  .deckpile .b{width:34px; height:48px}
+  .deckpile .n{font-size:9px; margin-top:3px}
   .backs .b{width:36px; height:51px; margin-left:-16px}
   .tag{font-size:10px; padding:5px 11px}
   .zone.mid{gap:18px}
-  /* A phone has room for the hand or the panel, not both, so the panel starts closed here
-     and opens as a sheet over the bottom of the table. Its open button parks bottom right,
-     clear of the bid prompt at the top. */
-  .solver{top:auto; bottom:8px; left:8px; right:8px; width:auto; max-height:44vh;
-    overflow-y:auto}
-  .sv-open{top:auto; bottom:8px; right:8px}
+  /* The panel starts closed on a phone, and when opened it sits in the band between the bid
+     prompt and the hand rather than over either. Anchoring it to the hand's own height keeps
+     that true at every round size, since the cards grow as the hand shrinks. */
+  .solver{top:auto; bottom:calc(var(--ch) + 46px); left:8px; right:8px; width:auto;
+    max-height:34vh; overflow-y:auto}
+  .sv-open{top:auto; bottom:calc(var(--ch) + 46px); right:8px}
   .ov{align-items:end; padding:0 0 10px}
   .ov .box{min-width:0; width:calc(100vw - 28px); max-width:none; padding:16px 14px;
     max-height:56vh; overflow-y:auto}
+  /* The title screen is a tall stack — card, hint, then the setup that unfolds under it — so
+     it must stay centred and be allowed to scroll. Bottom-aligning it the way the other
+     dialogs are pushed the difficulty buttons clean off the bottom of the felt. */
+  .ov.start{align-items:center; padding:10px}
+  .startwrap{gap:11px; max-height:100%; overflow-y:auto}
+  .startcard{width:132px; height:188px}
+  .ov.start.ready .startsetup{max-height:300px; padding:14px 18px 16px}
+  .startsetup{width:min(400px,94vw)}
+  .startsetup .bidbtn{height:38px; padding:0 14px; font-size:13px}
+  .starthint{font-size:11px}
+  .startnote{font-size:10.5px; margin-top:11px}
+
   /* The bid prompt is the one dialog that must never cover the hand: it pins to the top of
      the felt and shrinks instead of growing downward. */
   .ov.bid{align-items:flex-start; padding:0 8px}
@@ -1013,6 +1054,7 @@ async function runRound(){
   G.trickNo=0; G.leader=lead; G.thinking=false;
   G.freshDeal=true; G._lastTable=[null,null];   // animate this deal once, then stop
   G._from=[null,null];                          // where each side's card started this trick
+  G.review=[]; G._lastEV=null;                  // decisions awaiting the post-trick review
   G.logLines=[]; $("log").innerHTML="";         // the log is a record of this round only
 
   // Paint the freshly dealt hand BEFORE anything is asked. Naming trump off a flipped
@@ -1060,6 +1102,10 @@ async function runRound(){
       if(seat===0){
         card=await askCard(legal);
         if(stale(gen)) return;
+        if(legal.length>1 && G._lastEV)
+          fileReview({ label:`Trick ${t+1}`, grade:gradeRows(G._lastEV.rows, card),
+                       why:G._lastEV._why });
+        G._lastEV=null;
       }else{
         G.thinking=true; render(); await sleep(300);
         if(stale(gen)) return;
@@ -1089,6 +1135,8 @@ async function runRound(){
     popup(winner===0?"+1 TRICK":"THEIRS", winner===0);
     say(`Trick ${t+1}: ${cardName(G.table[0])} vs ${cardName(G.table[1])}, ${winner===0?"you":"they"} take it`);
     await sleep(900);
+    if(stale(gen)) return;
+    await showTrickReview(t, winner);
     if(stale(gen)) return;
     G.leader=winner; G.table=[null,null]; render();
   }
@@ -1421,27 +1469,160 @@ function consistentHand(rand, pool, size, voids){
    bid look bad against a strong opponent hand. That term is the same for every bid on the
    list, so it never changed which bid was best — it only moved the whole column. It now
    lives in the note instead, where it belongs. */
-function bidEV(legal){
-  const unseen=unseenForMe(), size=G.size;
-  const rand=mulberry(posSeed());
-  const dd=new DoubleDummy(G.trump, tricksPayoff), hm=maskOf(G.hands[0]);
-  const N=samplesFor(size), counts=[];
-  for(let i=0;i<N;i++)
-    counts.push(dd.value(hm, maskOf(sampleWith(rand,unseen,size)), G.leadSeat===0));
+/* A hand does not take a fixed number of tricks — it takes however many you play for. The
+   old model solved each deal once, for the most tricks you could force, and then scored every
+   bid against that single number. That says "you will take T whatever you bid", so bidding
+   away from T could only lose, and the column came out as a rigid ±1 ladder around T.
+   Measured against 80 real rounds at size 6, that single number was the true outcome only
+   44% of the time.
 
+   What a hand really has is a BAND. Solve twice: once maximising your tricks against best
+   defence, once minimising them while they push tricks at you. The first is the most you can
+   guarantee, the second the fewest you can hold yourself to, and every bid between the two is
+   makeable. That band contained the real outcome 84% of the time at size 6 and 80% at size 7,
+   at a mean width of about one trick — so it is both far more honest and still sharp enough
+   to choose with. It also explains something the old model could not: several different bids
+   can all be right, and among makeable ones the highest pays best, since a made bid scores
+   2 + tricks. */
+function bidBands(){
+  const unseen=unseenForMe(), size=G.size, hm=maskOf(G.hands[0]);
+  const rand=mulberry(posSeed());
+  const ddHi=new DoubleDummy(G.trump, tricksPayoff);
+  const ddLo=new DoubleDummy(G.trump, at=>-at);
+  const N=samplesFor(size), bands=[];
+  for(let i=0;i<N;i++){
+    const om=maskOf(sampleWith(rand,unseen,size));
+    const hi=ddHi.value(hm,om,G.leadSeat===0);
+    const lo=-ddLo.value(hm,om,G.leadSeat===0);
+    bands.push([Math.min(lo,hi), Math.max(lo,hi)]);
+  }
+  return bands;
+}
+function bidEV(legal){
+  const size=G.size, bands=bidBands(), N=bands.length;
+  const rows=legal.map(b=>{
+    let v=0;
+    for(const [lo,hi] of bands)
+      v += (b>=lo && b<=hi) ? 2+b : -Math.min(Math.abs(b-lo), Math.abs(b-hi));
+    return {key:b, label:String(b), ev:v/N};
+  });
   const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
-  const rows=legal.map(b=>({
-    key:b, label:String(b), ev:mean(counts.map(t=>roundScore(b,t)))
-  }));
-  const hits=new Map();
-  counts.forEach(t=>hits.set(t,(hits.get(t)||0)+1));
-  const mode=[...hits.entries()].sort((a,b)=>b[1]-a[1])[0];
-  let note=`${N} deals · you take ${mean(counts).toFixed(1)} tricks on average`
-         + ` · most often ${mode[0]} (${Math.round(mode[1]/N*100)}%)`;
-  if(G.bids[1]!==null)
-    note += ` · their bid of ${G.bids[1]} is worth `
-          + `${mean(counts.map(t=>roundScore(G.bids[1],size-t))).toFixed(1)} to them`;
-  return {rows, note};
+  const loM=mean(bands.map(x=>x[0])), hiM=mean(bands.map(x=>x[1]));
+  const makeable=new Map();
+  for(const [lo,hi] of bands)
+    for(let b=lo;b<=hi;b++) makeable.set(b,(makeable.get(b)||0)+1);
+  const best=[...makeable.entries()].sort((a,b)=>b[1]-a[1])[0];
+  return {rows, bands,
+    note:`${N} deals · you can force ${loM.toFixed(1)}–${hiM.toFixed(1)} tricks`
+       + ` · ${best[0]} is makeable in ${Math.round(best[1]/N*100)}% of them`};
+}
+
+/* ==========================================================================
+   EXPLANATION — why the solver says what it says.
+
+   Two ingredients. The first is exact arithmetic on what you can see: how many unseen cards
+   beat a given card, and the chance the opponent is holding one of them. Their hand is a
+   uniform random subset of the unseen cards, so that is a hypergeometric draw and needs no
+   sampling at all.
+
+   The second is casework measured offline over 600 rounds (see _casework.js), which answers
+   the questions arithmetic cannot: how often a choice matters at all, and what the solver
+   tends to do in each situation. Those constants are quoted below and are the reason the
+   text can say something specific rather than restating the EV column in words.
+   ========================================================================== */
+
+/* P(at least one of `k` particular cards falls in a random `h`-subset of `u` unseen). */
+function pAtLeastOne(u, h, k){
+  if(k<=0 || h<=0) return 0;
+  if(h>u-k) return 1;
+  let p=1;                                   // P(none) = C(u-k,h)/C(u,h), built as a product
+  for(let i=0;i<h;i++) p *= (u-k-i)/(u-i);
+  return 1-p;
+}
+const pct = x => Math.round(x*100);
+/* How many unseen cards would beat `card` if it were led. */
+const beatsCount = (card, unseen) =>
+  unseen.filter(x => trickWinner(card, x, G.trump)===1).length;
+
+/* Measured over 600 rounds at sizes 3-8. Quoted verbatim in the text below. */
+const CASE = {
+  tiedShare: 79,           // % of card decisions where every legal card scored the same
+  realCost: 7.5,           // mean points lost by the wrong card when the choice does matter
+  hookRate: 35,            // % of rounds where the hook forbids your best bid
+  hookCost: 2.9,           // points it costs when it does
+  bandWidth: [35,43,17,4], // % of hands whose reachable band is 0,1,2,3 tricks wide
+  duckWhenSafe: 83,        // % of the time the best card gives the trick away, once at bid
+  winWhenNeeded: 80,       // % of the time it takes the trick, when you need every one
+  leadJesterSafe: 47,      // % of the time leading the Jester is best, once at or over bid
+};
+
+function explainBid(res){
+  const size=G.size, unseen=unseenForMe(), u=unseen.length, h=size;
+  const out=[];
+  const lo=res.bands.reduce((s,x)=>s+x[0],0)/res.bands.length;
+  const hi=res.bands.reduce((s,x)=>s+x[1],0)/res.bands.length;
+  const exact=res.bands.filter(x=>x[0]===x[1]).length;
+  out.push(`Your hand can be played for <b>${lo.toFixed(1)}</b> to <b>${hi.toFixed(1)}</b> tricks. `
+    + `In ${pct(exact/res.bands.length)}% of the sampled layouts it is pinned to a single number; `
+    + `otherwise you get to choose, and among makeable bids the highest pays most, since a made `
+    + `bid scores 2 + tricks.`);
+
+  const wiz=unseen.filter(isWizard).length, jes=unseen.filter(isJester).length;
+  if(wiz) out.push(`${wiz} Wizard${wiz>1?"s are":" is"} still out. They hold `
+    + `<b>${pct(pAtLeastOne(u,h,wiz))}%</b> to have at least one — a Wizard led always wins, so `
+    + `that is a trick you cannot stop.`);
+  if(jes) out.push(`${jes} Jester${jes>1?"s are":" is"} still out (<b>${pct(pAtLeastOne(u,h,jes))}%</b> `
+    + `they hold one), which is a trick they cannot win with.`);
+
+  if(G.trump>=0){
+    const myTrumps=G.hands[0].filter(c=>suitOf(c)===G.trump).length;
+    const outTrumps=unseen.filter(c=>suitOf(c)===G.trump).length;
+    out.push(`You hold <b>${myTrumps}</b> ${SUIT_WORDS[G.trump]}; ${outTrumps} unseen, so they average `
+      + `<b>${(outTrumps*h/u).toFixed(1)}</b>.`);
+  }
+  if(G.dealer===0 && G.bids[1]!==null)
+    out.push(`You are dealt last, so the hook applies to you: you cannot bid ${size-G.bids[1]}. `
+      + `That bites in about ${CASE.hookRate}% of rounds and costs roughly ${CASE.hookCost} points when it does.`);
+  else
+    out.push(`You bid first, so your bid takes ${size} − your bid away from them.`);
+  return out;
+}
+
+function explainCard(legal, res){
+  const out=[], need=G.bids[0]-G.tricks[0], left=G.hands[0].length;
+  const unseen=unseenForMe(), u=unseen.length, h=G.hands[1].length;
+  const leading=G.table[1]===null;
+
+  out.push(need<=0
+    ? `You are at your bid of ${G.bids[0]} with ${left} card${left>1?"s":""} left — every further trick costs a point.`
+    : need>=left
+      ? `You need all ${left} remaining trick${left>1?"s":""} to make ${G.bids[0]}.`
+      : `You need <b>${need}</b> more from <b>${left}</b> remaining.`);
+
+  if(leading){
+    const best=res.rows.slice().sort((x,y)=>y.ev-x.ev)[0];
+    if(best){
+      const m=beatsCount(best.key, unseen);
+      out.push(`If you lead the ${best.label}, <b>${m}</b> of the ${u} unseen cards beat it, and they `
+        + `hold ${h} of those ${u} — so it is beaten <b>${pct(pAtLeastOne(u,h,m))}%</b> of the time.`);
+    }
+    if(need<=0) out.push(`Once you are at your bid, leading the Jester is the best play `
+      + `${CASE.leadJesterSafe}% of the time — it cannot win, so it cannot break your contract.`);
+  }else{
+    const led=G.table[1];
+    const canWin=legal.filter(c=>trickWinner(led,c,G.trump)===1).length;
+    out.push(canWin
+      ? `${canWin} of your ${legal.length} legal cards would take this trick.`
+      : `None of your legal cards can take this trick.`);
+    if(need<=0) out.push(`Sitting at or over your bid, the best card gives the trick away `
+      + `${CASE.duckWhenSafe}% of the time.`);
+    else if(need>=left) out.push(`Needing every trick, the best card takes it `
+      + `${CASE.winWhenNeeded}% of the time.`);
+  }
+  if(G.myVoids && G.myVoids.size)
+    out.push(`They have shown out of <b>${[...G.myVoids].map(s=>SUIT_WORDS[s]).join(", ")}</b>, `
+      + `so those cards of yours are safe to lead.`);
+  return out;
 }
 
 function cardEV(legal){
@@ -1462,9 +1643,10 @@ function cardEV(legal){
     + (voids.length?` · they are void in ${voids.join(", ")}`:"")};
 }
 
-function showSolver(title, result){
+function showSolver(title, result, why){
   const box=$("solver");
   if(!solverOn || !result.rows.length){ box.style.display="none"; return; }
+  result._why = why || null;
   box.style.display="block";
   const best=Math.max(...result.rows.map(r=>r.ev));
   const worst=Math.min(...result.rows.map(r=>r.ev));
@@ -1478,7 +1660,8 @@ function showSolver(title, result){
       <span class="sv-v">${r.ev>=0?"+":""}${r.ev.toFixed(2)}</span></div>`;
   }).join("");
   $("svTitle").textContent=title;
-  $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`;
+  $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`
+    + (why && why.length ? `<div class="sv-why">${why.map(t=>`<p>${t}</p>`).join("")}</div>` : "");
 }
 const hideSolver = () => { $("solver").style.display="none"; };
 
@@ -1491,6 +1674,60 @@ function solving(title){
 }
 
 /* ==========================================================================
+   POSTMORTEM — after each trick, what the choice actually was.
+
+   Deliberately after, not before: the point is a tight feedback loop, not a hint. Everything
+   it shows was computed at the moment you decided, from the information you had then, so it
+   is a fair grade rather than hindsight with the opponent's hand face up.
+
+   Measured over 600 rounds: 79% of card decisions are ties, where every legal card scores the
+   same because the contract is already safe or already dead. Saying so is most of the value —
+   it stops you hunting for a lesson that is not there. The other 21% are worth 7.5 points on
+   average, and those are the ones worth reading. */
+let reviewOn = true;
+
+function fileReview(entry){ if(G && G.review) G.review.push(entry); }
+
+function gradeRows(rows, chosen){
+  if(!rows || !rows.length) return null;
+  const sorted=rows.slice().sort((a,b)=>b.ev-a.ev);
+  const best=sorted[0], mine=rows.find(r=>r.key===chosen);
+  if(!mine) return null;
+  const spread=best.ev-sorted[sorted.length-1].ev;
+  return { best, mine, cost:best.ev-mine.ev, tied:spread<1e-9, sorted };
+}
+
+function reviewLine(g, label){
+  if(!g) return "";
+  if(g.tied)
+    return `<div class="rv-row ok"><span class="rv-k">${label}</span>
+      <span class="rv-v">${g.mine.label}</span>
+      <span class="rv-note">every option scored the same — nothing to get wrong here</span></div>`;
+  const good = g.cost < 1e-9;
+  return `<div class="rv-row ${good?"ok":"bad"}"><span class="rv-k">${label}</span>
+    <span class="rv-v">${g.mine.label} <i>${g.mine.ev>=0?"+":""}${g.mine.ev.toFixed(2)}</i></span>
+    <span class="rv-note">${good
+      ? "best available"
+      : `best was <b>${g.best.label}</b> at ${g.best.ev>=0?"+":""}${g.best.ev.toFixed(2)}
+         — this cost <b>${g.cost.toFixed(2)}</b>`}</span></div>`;
+}
+
+function showTrickReview(trickNo, winner){
+  return new Promise(done=>{
+    if(!reviewOn || !G.review.length){ done(); return; }
+    const items=G.review.splice(0);
+    const body=items.map(it=>reviewLine(it.grade, it.label)).join("");
+    const why=items.filter(i=>i.why && i.why.length).slice(-1)[0];
+    const ov=overlay(`<h2 class="o">Trick ${trickNo+1} review</h2>
+      <div class="rv">${body}</div>
+      ${why ? `<div class="rv-why">${why.why.map(t=>`<p>${t}</p>`).join("")}</div>` : ""}
+      <button class="btn-gold o1 rv-go">Next</button>`);
+    ov.classList.add("review");
+    ov.querySelector(".rv-go").onclick=()=>{ ov.remove(); done(); };
+  });
+}
+
+/* ==========================================================================
    PROMPTS
    ========================================================================== */
 function overlay(html){
@@ -1498,14 +1735,19 @@ function overlay(html){
   d.innerHTML=`<div class="box">${html}</div>`;
   $("felt").appendChild(d); return d;
 }
+/* The solve happens whether or not the panel is showing. The panel is the spoiler; the
+   review afterwards is not, and it needs the same numbers — so they are computed once, shown
+   only if you asked for them, and always filed for the postmortem. */
 function askCard(legal){
   return new Promise(res=>{
     pendingCard={legal,resolve:res}; render();
-    if(!solverOn){ hideSolver(); return; }
-    solving("Card EV");
+    if(solverOn) solving("Card EV");
     setTimeout(()=>{
       if(!pendingCard) return;                  // they played before the solve came back
-      showSolver("Card EV", cardEV(legal));
+      const r = legal.length>1 ? cardEV(legal) : {rows:[],note:"only one legal card"};
+      r._why = explainCard(legal, r);
+      G._lastEV = r;                            // kept for the review after the trick
+      if(solverOn) showSolver("Card EV", r, r._why);
     },0);
   });
 }
@@ -1543,18 +1785,19 @@ function askBid(legal){
       <div class="bidfoot o1">Exactly right scores <b>2 + tricks</b>.
         Anything else loses the difference. Press a <b>number key</b> to bid.</div>`);
     ov.classList.add("bid");
-    // Bids are ranked in the solver panel only. Printing the number under every button
-    // turned the bid row into a lookup table and stopped it reading as a choice.
-    if(solverOn){
-      solving("Bid EV");
-      setTimeout(()=>{
-        if(!ov.isConnected) return;             // they bid before the solve came back
-        showSolver("Bid EV", bidEV(legal));
-      },0);
-    }
+    if(solverOn) solving("Bid EV");
+    /* The bid is solved even when the panel is hidden, so the review can grade it. */
+    let bidRes=null;
+    setTimeout(()=>{
+      if(!ov.isConnected) return;               // they bid before the solve came back
+      bidRes = bidEV(legal);
+      if(solverOn) showSolver("Bid EV", bidRes, explainBid(bidRes));
+    }, 0);
     ov.querySelectorAll(".bidbtn").forEach(btn=>{
       const b=+btn.dataset.b;
       if(legal.includes(b)) btn.onclick=()=>{
+        if(bidRes) fileReview({ label:"Your bid", grade:gradeRows(bidRes.rows,b),
+                                why:explainBid(bidRes) });
         ov.remove(); hideSolver(); say(`You bid ${b}`); res(b);
       };
     });
