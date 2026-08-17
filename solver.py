@@ -223,9 +223,24 @@ class DoubleDummy:
 
     # -- public API -----------------------------------------------------------
 
+    def _begin(self) -> None:
+        """Start a fresh determinization.
+
+        One instance is deliberately reused across all the determinizations of a single
+        decision so the table can carry subtrees between them, but the node budget must not
+        be carried with it. Left cumulative, a large enough sample count exhausts the budget
+        partway through and every determinization after that returns ``payoff(a, b)`` without
+        searching at all — a constant that silently drags every option's average toward the
+        same number, with no error and no sign that it happened.
+        """
+        self.nodes = 0
+        if len(self._tt) > 400_000:
+            self._tt.clear()
+
     def value(self, a_hand, b_hand, *, a_to_move: bool = True, lead: int | None = None,
               a_tricks: int = 0, b_tricks: int = 0) -> float:
         """Exact minimax value of the position, from A's point of view."""
+        self._begin()
         a = a_hand if isinstance(a_hand, int) else mask_of(a_hand)
         b = b_hand if isinstance(b_hand, int) else mask_of(b_hand)
         return self._search(a, b, a_to_move, lead, a_tricks, b_tricks, -INF, INF)
@@ -239,6 +254,7 @@ class DoubleDummy:
         across determinizations — averaging bounds would quietly corrupt the comparison
         between moves.
         """
+        self._begin()
         a = a_hand if isinstance(a_hand, int) else mask_of(a_hand)
         b = b_hand if isinstance(b_hand, int) else mask_of(b_hand)
         out: dict[int, float] = {}

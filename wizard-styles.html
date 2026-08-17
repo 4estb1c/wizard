@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wizard — cone and brim</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a6350;
+ background-image:radial-gradient(ellipse 60% 45% at 22% 12%,#4b8f70 0,transparent 60%),
+                  radial-gradient(ellipse 55% 50% at 82% 80%,#3e805f 0,transparent 58%);
+ font-family:Inter,"Segoe UI",system-ui,Arial,sans-serif;font-weight:700;color:#fdfbf3;
+ padding:26px 32px 60px;min-height:100vh}
+h1{font-size:20px;margin-bottom:3px}
+.sub{font-size:12px;font-weight:600;color:#cfe3d8;margin-bottom:22px;max-width:900px;
+ line-height:1.65}
+.sub b{color:#fdfbf3}
+.row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.opt{background:rgba(8,18,14,.42);border-radius:13px;padding:14px;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 4px 18px rgba(0,0,0,.28)}
+.opt h3{font-size:13px;margin-bottom:1px}
+.opt .n{font-size:8.5px;text-transform:uppercase;letter-spacing:.15em;color:#8fc3ab;
+ margin-bottom:10px}
+.opt p{font-size:10.5px;font-weight:600;line-height:1.6;color:#bed3c9;margin-top:10px;
+ max-width:215px}
+.strip{display:flex;gap:8px;align-items:flex-end}
+.c{border-radius:8px;position:relative;overflow:hidden;
+ background:linear-gradient(168deg,#2a3160,#0e1128);
+ box-shadow:0 8px 22px rgba(0,0,0,.5),inset 0 0 0 3px #d4a53a,inset 0 0 0 6px #171c38}
+.c svg{position:absolute;inset:0;width:100%;height:100%}
+</style>
+</head>
+<body>
+
+<h1>Wizard — cone and brim</h1>
+<div class="sub">Line art has no fill, so where two shapes meet you have to say which one wins;
+left alone their outlines simply cross. Three answers, same two paths in all of them. The
+Jester's prongs currently use the first of these, so whichever you pick here is worth matching
+there — the two cards share the brim path and should share the logic too.</div>
+
+<div class="row" id="grid"></div>
+
+<script>
+const GOLD="#d4a53a";
+const CONE = "M50 32 L69 88 L31 88 Z";
+const BRIM = "M27 89 C27 84 38 81 50 81 C62 81 73 84 73 89 C73 94 62 97 50 97 "
+           + "C38 97 27 94 27 89 Z";
+/* Everything above the brim's top arc. */
+const ABOVE = "M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z";
+
+const ACCENTS = `
+  <circle cx="50" cy="27" r="4.2" fill="${GOLD}"/>
+  <path d="M46 60 L48 67 L55 69 L48 71 L46 78 L44 71 L37 69 L44 67 Z" fill="${GOLD}"/>
+  <circle cx="63" cy="52" r="2.2" fill="${GOLD}" opacity=".85"/>
+  <circle cx="37" cy="46" r="1.6" fill="${GOLD}" opacity=".7"/>
+  <circle cx="66" cy="70" r="1.6" fill="${GOLD}" opacity=".7"/>
+  <text x="50" y="119" text-anchor="middle" fill="${GOLD}" font-family="Georgia,serif"
+        font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>`;
+
+const shell = (defs, body) => `<svg viewBox="0 0 100 140">
+  <defs>${defs}</defs>
+  <rect x="10" y="10" width="80" height="120" rx="4" fill="none" stroke="${GOLD}"
+        stroke-width=".8" opacity=".4"/>
+  <g fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linejoin="round"
+     stroke-linecap="round">${body}</g>
+  ${ACCENTS}</svg>`;
+
+/* 1. Cone behind: clipped to the brim's top arc, so its base never draws. */
+const behind = shell(
+  `<clipPath id="cb"><path d="${ABOVE}"/></clipPath>`,
+  `<g clip-path="url(#cb)"><path d="${CONE}"/></g><path d="${BRIM}"/>`);
+
+/* 2. Cone in front: the brim is masked by the cone, so the ring breaks where the cone
+      crosses it and the cone keeps its whole triangle, base line and all. The mask strokes
+      the cone wider than the line itself, which leaves a hairline of air around it. */
+const inFront = shell(
+  `<mask id="mf" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
+     <rect x="0" y="0" width="100" height="140" fill="#fff"/>
+     <path d="${CONE}" fill="#000" stroke="#000" stroke-width="5.2" stroke-linejoin="round"/>
+   </mask>`,
+  `<path d="${BRIM}" mask="url(#mf)"/><path d="${CONE}"/>`);
+
+/* 3. Neither: the two outlines simply cross, which is where this started. */
+const crossed = shell("", `<path d="${CONE}"/><path d="${BRIM}"/>`);
+
+const V=[
+ {n:"Cone behind the brim", tag:"what play.html has now", art:behind,
+  p:"The base line is cut away entirely and the cone's sides stop at the ring. Reads as a hat sitting down inside its brim. Quietest, and the ellipse stays a complete unbroken shape."},
+ {n:"Cone on top of the brim", tag:"the one you asked about", art:inFront,
+  p:"The cone keeps its full triangle including the base line, and the ring is cut where the cone passes over it. More depth and more line on the card; the ellipse is no longer whole, which is the trade."},
+ {n:"Neither", tag:"outlines crossing", art:crossed,
+  p:"No occlusion at all — the base line runs straight through the ring. Included only to show what the other two are fixing."},
+];
+document.getElementById("grid").innerHTML = V.map((v,i)=>`
+  <div class="opt">
+    <h3>${i+1}. ${v.n}</h3><div class="n">${v.tag}</div>
+    <div class="strip">
+      <div class="c" style="width:170px;height:241px">${v.art}</div>
+      <div class="c" style="width:70px;height:99px">${v.art}</div>
+    </div>
+    <p>${v.p}</p></div>`).join("");
+</script>
+</body>
+</html>

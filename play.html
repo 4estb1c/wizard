@@ -39,9 +39,15 @@
 <circle cx='16' cy='33' r='.8' opacity='.55'/><circle cx='58' cy='45' r='.6' opacity='.4'/>\
 <circle cx='34' cy='63' r='.7' opacity='.45'/></g></svg>"),
     linear-gradient(168deg,#2a3160,#0e1128);
+  /* Jester face: aged paper, warm in the middle and dirtier at the edges, with the diamond
+     lattice over it at a tenth strength. The lattice paints only its own diamonds rather
+     than a solid complementary colour — as a full-strength two-tone check it shouted over
+     the drawing no matter how close the two colours were. */
+  --parchment:radial-gradient(ellipse 82% 74% at 48% 42%,
+    #e7d7b3 0%, #ddc99e 40%, #c9b184 78%, #b39a70 100%);
   --harlequin:url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' width='20' height='24' viewBox='0 0 20 24'>\
-<rect width='20' height='24' fill='%230d0d0c'/><g fill='%23b3201c'>\
+<g fill='%235b3b8f' opacity='0.1'>\
 <path d='M0 -12 L10 0 L0 12 L-10 0 Z'/><path d='M20 -12 L30 0 L20 12 L10 0 Z'/>\
 <path d='M0 12 L10 24 L0 36 L-10 24 Z'/><path d='M20 12 L30 24 L20 36 L10 24 Z'/>\
 </g></svg>");
@@ -195,13 +201,38 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .card.playable:hover{transform:translateY(-20px) scale(1.06) rotate(0deg)!important; z-index:9;
   filter:brightness(1.07)}
 .card.dim{filter:brightness(.46) saturate(.35) contrast(.9)}
+
+/* ---- hotkey indicators ----
+   Four treatments, picked by the HOTKEY_STYLE constant in the script. Keys run left to right
+   across the fan, so the digit is a position and not a property of the card. They are only
+   drawn while a card is actually being asked for; during bidding the same digits mean bids.
+   k2 hangs below the card, so its card has to stop clipping. */
+.hotkey{position:absolute; z-index:6; font-weight:800; pointer-events:none}
+.card:has(> .hotkey.k2){overflow:visible}
+.hotkey.k1{top:5px; right:5px; width:17px; height:17px; border-radius:50%;
+  background:rgba(10,16,13,.82); color:#f6c860; font-size:10.5px;
+  display:grid; place-items:center; box-shadow:inset 0 0 0 1px rgba(246,200,96,.45)}
+.hotkey.k2{left:50%; bottom:-21px; transform:translateX(-50%); min-width:19px; height:18px;
+  padding:0 5px; border-radius:4px; background:#20282f; color:#dfe6f2; font-size:10.5px;
+  display:grid; place-items:center;
+  box-shadow:0 2px 0 #10161b, inset 0 1px 0 rgba(255,255,255,.16)}
+.hotkey.k3{left:0; right:0; bottom:0; height:16px; background:rgba(10,16,13,.8);
+  color:#f6c860; font-size:10px; letter-spacing:.08em; display:grid; place-items:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.hotkey.k4{inset:0; display:grid; place-items:center; font-size:calc(var(--cw) * .6);
+  color:rgba(20,28,24,.16)}
+.card.sp .hotkey.k4, .card.je .hotkey.k4{color:rgba(255,255,255,.2)}
+.card.dim .hotkey.k1, .card.dim .hotkey.k4{display:none}
+.card.dim .hotkey.k2{opacity:.25}
+.card.dim .hotkey.k3{background:rgba(10,16,13,.5); color:#7b8590}
 .card.sp{background:var(--wizface);
   box-shadow:0 6px 16px rgba(0,0,0,.5), 0 1px 0 rgba(0,0,0,.45),
     inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
 .card.je{
-  background:#0d0d0c var(--harlequin) 0 0/16px 20px;
+  background-image:var(--harlequin), var(--parchment);
+  background-size:16px 20px, auto;
   box-shadow:0 6px 16px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.4),
-    inset 0 0 0 2px #0d0d0c, inset 0 0 0 4px #f2e6cd}
+    inset 0 0 0 2px #4a2f73, inset 0 0 0 4px #e3d1a9}
 /* The fan tilt lives in a custom property, not an inline transform, so the keyframe can
    carry it through — otherwise the card animates flat and then snaps into its rotation.
    --dx/--dy are measured at deal time so each card flies in from the actual deck pile. */
@@ -223,8 +254,9 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .card.flipping .fs{position:absolute; inset:0; border-radius:7px; overflow:hidden;
   backface-visibility:hidden; background:var(--face);
   box-shadow:0 6px 16px rgba(0,0,0,.4), inset 0 0 0 2px #1b1f35, inset 0 0 0 4px var(--face)}
-.card.flipping .fs.je{background:#0d0d0c var(--harlequin) 0 0/16px 20px;
-  box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 0 0 2px #0d0d0c, inset 0 0 0 4px #f2e6cd}
+.card.flipping .fs.je{background-image:var(--harlequin), var(--parchment);
+  background-size:16px 20px, auto;
+  box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 0 0 2px #4a2f73, inset 0 0 0 4px #e3d1a9}
 .card.flipping .fs.sp{background:var(--wizface);
   box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
 .card.flipping .fs.b{transform:rotateY(180deg); background:#a4271f;
@@ -233,6 +265,27 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .card.flipping .fs.b::after{content:""; position:absolute; inset:9px;
   background-image:repeating-linear-gradient(45deg,#d8483c 0 4px,transparent 4px 8px),
                    repeating-linear-gradient(-45deg,#d8483c 0 4px,transparent 4px 8px)}
+/* ---- the bid prompt ----
+   Anchored near the top of the felt rather than centred, and with a much lighter scrim, so
+   the hand underneath stays readable while you choose. */
+.ov.bid{background:rgba(6,14,11,.34); align-items:flex-start; padding:0 12px}
+.ov.bid .box{margin-top:clamp(40px,9vh,104px); min-width:0; text-align:left;
+  width:min(460px, calc(100vw - 24px)); padding:16px 18px 15px}
+.bidhead{display:flex; align-items:center; gap:16px; margin-bottom:12px}
+.bidnum{flex:0 0 auto; text-align:center; background:rgba(0,0,0,.28); border-radius:10px;
+  padding:5px 16px 7px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.bignum{font-size:46px; font-weight:800; line-height:1.02; color:#ff9186}
+.bignum.dim{color:#5d6673}
+.bidsay{flex:1; min-width:0}
+.bidmain{font-size:14.5px; font-weight:700; line-height:1.45; color:#e7ecf3}
+.bidmain b{color:#f6c860}
+.bidhook{font-size:11.5px; font-weight:700; color:#9aa4b2; margin-top:4px;
+  text-transform:uppercase; letter-spacing:.09em}
+.bidhook b{color:#ff9186}
+.ov.bid .bidrow{margin:0 0 11px; justify-content:flex-start}
+.bidfoot{font-size:11.5px; font-weight:600; color:#98a2af; line-height:1.5}
+.bidfoot b{color:#c9d2dd}
+
 /* ---- title screen ----
    One card, face down, centred on the felt. The setup is present from the start but folded
    away to zero height so revealing it is a transition rather than a second dialog. */
@@ -411,13 +464,25 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
   .backs .b{width:36px; height:51px; margin-left:-16px}
   .tag{font-size:10px; padding:5px 11px}
   .zone.mid{gap:18px}
-  /* Full width across the top; the opponent's backs are the cheapest thing to cover, and
-     the dialogs drop to the bottom of the felt so the two never sit on top of each other. */
-  .solver{top:8px; left:8px; right:8px; width:auto; max-height:38vh; overflow-y:auto}
-  .sv-open{top:8px; right:8px}
+  /* A phone has room for the hand or the panel, not both, so the panel starts closed here
+     and opens as a sheet over the bottom of the table. Its open button parks bottom right,
+     clear of the bid prompt at the top. */
+  .solver{top:auto; bottom:8px; left:8px; right:8px; width:auto; max-height:44vh;
+    overflow-y:auto}
+  .sv-open{top:auto; bottom:8px; right:8px}
   .ov{align-items:end; padding:0 0 10px}
   .ov .box{min-width:0; width:calc(100vw - 28px); max-width:none; padding:16px 14px;
     max-height:56vh; overflow-y:auto}
+  /* The bid prompt is the one dialog that must never cover the hand: it pins to the top of
+     the felt and shrinks instead of growing downward. */
+  .ov.bid{align-items:flex-start; padding:0 8px}
+  .ov.bid .box{margin-top:8px; width:calc(100vw - 16px); max-height:none; padding:12px 13px}
+  .bidhead{gap:12px; margin-bottom:10px}
+  .bidnum{padding:3px 12px 5px} .bignum{font-size:36px}
+  .bidmain{font-size:13px} .bidhook{font-size:10.5px}
+  .ov.bid .bidrow{gap:7px; margin-bottom:9px}
+  .ov.bid .bidbtn{width:42px; height:42px; font-size:17px}
+  .bidfoot{font-size:10.5px}
   .ov h2{font-size:20px} .ov p{font-size:12px}
   .bidbtn{width:48px; height:48px; font-size:18px}
   .suitbtn{width:58px; height:58px; font-size:27px}
@@ -628,12 +693,24 @@ class DoubleDummy{
     this.tt.set(key,[best, best<=a0?UPPER : best>=b0?LOWER : EXACT]);
     return best;
   }
+  /* One solver instance is reused across all the determinizations of a single decision, so
+     the node budget has to be per determinization. Sharing it meant an eight-card solve
+     burned the whole 400k by the twenty-sixth sample and every sample after that returned
+     payoff(at,bt) without searching at all — a constant that dragged every option's average
+     toward the same number. The table is kept across samples, which is sound because its
+     keys carry both hands, and only cleared when it gets big enough to cost memory. */
+  reset(){
+    this.nodes=0;
+    if(this.tt.size>120000) this.tt.clear();
+  }
   value(a,b,aMove=true,lead=null,at=0,bt=0){
+    this.reset();
     return this.search(a,b,aMove,lead,at,bt,-Infinity,Infinity);
   }
   /* Each root move gets a full window: alpha-beta would return a bound for all but
      the best, and PIMC averages these across determinizations. */
   rootValues(a,b,lead=null,at=0,bt=0){
+    this.reset();
     const out=new Map();
     for(const card of this.moves(a,lead)){
       const bit=1<<card;
@@ -758,15 +835,33 @@ function rankSVG(label, suit, c){
 }
 
 /* Wizard — stroked cone and brim, solid jewel at the tip, sparks around it. */
-const wizardSVG = () => `
+/* The cone sits in front of the brim. Line art has no fill, so "in front" cannot come from
+   draw order — the ring is masked by the cone instead, which cuts it away where the cone
+   crosses and lets the cone keep its whole triangle, base line included. The mask strokes
+   the cone wider than the line itself, leaving a hairline of air around it; that gap is what
+   reads as one shape passing over another rather than the two simply meeting.
+   Every instance gets a fresh mask id: several of these can be in the document at once, and
+   duplicate ids would leave every card pointing at the first card's mask. */
+const BRIM_PATH = "M27 89 C27 84 38 81 50 81 C62 81 73 84 73 89 C73 94 62 97 50 97 "
+                + "C38 97 27 94 27 89 Z";
+const CONE_PATH = "M50 32 L69 88 L31 88 Z";
+let svgUid = 0;
+
+const wizardSVG = () => { const u = "wz" + (++svgUid); return `
 <svg viewBox="0 0 100 140">
+  <defs>
+    <mask id="${u}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
+      <rect x="0" y="0" width="100" height="140" fill="#fff"/>
+      <path d="${CONE_PATH}" fill="#000" stroke="#000" stroke-width="5.2"
+            stroke-linejoin="round"/>
+    </mask>
+  </defs>
   <rect x="10" y="10" width="80" height="120" rx="4" fill="none" stroke="${GOLD_INK}"
         stroke-width=".8" opacity=".4"/>
   <g fill="none" stroke="${GOLD_INK}" stroke-width="2.6" stroke-linejoin="round"
      stroke-linecap="round">
-    <path d="M50 32 L69 88 L31 88 Z"/>
-    <path d="M27 89 C27 84 38 81 50 81 C62 81 73 84 73 89 C73 94 62 97 50 97
-             C38 97 27 94 27 89 Z"/>
+    <path d="${BRIM_PATH}" mask="url(#${u})"/>
+    <path d="${CONE_PATH}"/>
   </g>
   <circle cx="50" cy="27" r="4.2" fill="${GOLD_INK}"/>
   <path d="M46 60 L48 67 L55 69 L48 71 L46 78 L44 71 L37 69 L44 67 Z" fill="${GOLD_INK}"/>
@@ -775,41 +870,94 @@ const wizardSVG = () => `
   <circle cx="66" cy="70" r="1.6" fill="${GOLD_INK}" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="${GOLD_INK}" font-family="Georgia,serif"
         font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
-</svg>`;
+</svg>`; };
 
-/* Jester — the hat from the reference. The lobes there are constant-width bands with a heavy
-   even outline, which is exactly what you get by stroking one centreline twice: black and
-   fat underneath, colour and thinner on top. That is far easier to keep faithful than
-   outlining the band by hand, and the round caps give the tips their blunt finish for free.
-   Coordinates stay in the reference's own 1000-unit space and one transform drops the whole
-   drawing into the card, so the art can be nudged without re-deriving card units.
-   Draw order is left, right, middle, crown: each lobe's black stroke cuts the one behind it,
-   which is where the dividing lines between the three lobes come from. */
-const JES_GRN="#1c8a4e", JES_VIO="#6b3fa0", JES_YEL="#efaf27", JES_LINE="#0d0d0c";
-const JES_W=104, JES_EDGE=27, JES_BELL=50;      // band width, outline per side, bell radius
+/* Jester — same construction language as the Wizard: one frame rect, one stroke weight,
+   closed outlines with nothing filled but the bells, the same serif label on the same
+   baseline, and the Wizard's brim path underneath.
 
-const jesLobe = (d, fill, bx, by) => `
-  <path d="${d}" fill="none" stroke="${JES_LINE}" stroke-width="${JES_W+JES_EDGE*2}"/>
-  <path d="${d}" fill="none" stroke="${fill}" stroke-width="${JES_W}"/>
-  <circle cx="${bx}" cy="${by}" r="${JES_BELL+JES_EDGE}" fill="${JES_LINE}"/>
-  <circle cx="${bx}" cy="${by}" r="${JES_BELL}" fill="${JES_YEL}"/>`;
+   The three prongs are not hand-drawn outlines. Each is a centreline swept with a width that
+   eases to nothing at the tip, and the outline is that sweep's two offset edges. Drawing a
+   prong the obvious way — up one side to the crest, back down the outside, then up the inside
+   again — makes the descending edge cross the ascending one, which is where the folded-over
+   look came from. A sweep cannot do that as long as the curve never bends tighter than its
+   own half-width.
 
-const jesterSVG = () => `
+   Three things are deliberate and worth not breaking:
+     · the roots sit at 42 / 50 / 58 before narrowing, symmetric about the centre line even
+       though the middle prong's tip hooks right;
+     · the right prong is the left one reflected about x = 50, so they are identical by
+       construction rather than by eye;
+     · depth order is right behind middle behind left. Outlines have no fill, so that cannot
+       come from draw order — each prong is masked by whatever sits in front of it, and the
+       mask strokes the occluder wider than the line to leave a hairline of air.
+
+   NARROW squeezes the centrelines before they are swept, not the finished paths: squeezing
+   the drawing would also thin every near-vertical part of a prong and undo the widths below.
+   Every instance gets fresh ids; duplicates would point every card at the first card's mask. */
+const JES_INK="#5b3b8f";
+const JES_NARROW=0.82, JES_MID_W=21, JES_PRONG_W=13;
+const ABOVE_BRIM = "M0 0 L100 0 L100 89 L73 89 C73 84 62 81 50 81 C38 81 27 84 27 89 L0 89 Z";
+
+function jesSweep(pts, w0, w1, steps=44){
+  const [p0,c1,c2,p3]=pts.map(([x,y])=>[50+(x-50)*JES_NARROW, y]);
+  const at=t=>{const u=1-t;return[
+    u*u*u*p0[0]+3*u*u*t*c1[0]+3*u*t*t*c2[0]+t*t*t*p3[0],
+    u*u*u*p0[1]+3*u*u*t*c1[1]+3*u*t*t*c2[1]+t*t*t*p3[1]];};
+  const d1=t=>{const u=1-t;return[
+    3*u*u*(c1[0]-p0[0])+6*u*t*(c2[0]-c1[0])+3*t*t*(p3[0]-c2[0]),
+    3*u*u*(c1[1]-p0[1])+6*u*t*(c2[1]-c1[1])+3*t*t*(p3[1]-c2[1])];};
+  const L=[],R=[];
+  for(let i=0;i<=steps;i++){
+    const t=i/steps,[x,y]=at(t),[dx,dy]=d1(t);
+    const len=Math.hypot(dx,dy)||1, nx=-dy/len, ny=dx/len;
+    const w=(w0+(w1-w0)*Math.pow(t,0.7))/2;
+    L.push([x+nx*w,y+ny*w]); R.push([x-nx*w,y-ny*w]);
+  }
+  const f=n=>Math.round(n*100)/100;
+  return "M"+L.concat(R.reverse()).map(([x,y])=>f(x)+" "+f(y)).join(" L")+" Z";
+}
+const jesMirror = d => { let i=0;
+  return d.replace(/-?\d*\.?\d+/g, m =>
+    String(Math.round(((i++%2===0) ? 100-parseFloat(m) : parseFloat(m))*100)/100));
+};
+const jesNX = x => Math.round((50+(x-50)*JES_NARROW)*100)/100;
+
+const JES_L = jesSweep([[42,86],[34,57],[18,53],[16,70]], JES_PRONG_W, JES_PRONG_W*0.13);
+const JES_R = jesMirror(JES_L);
+const JES_M = jesSweep([[50,86],[48,60],[52,32],[64,30]], JES_MID_W,   JES_MID_W*0.12);
+
+const jesterSVG = () => { const u="js"+(++svgUid); return `
 <svg viewBox="0 0 100 140">
-  <g transform="translate(6.5,22.2) scale(0.0888)"
-     stroke-linecap="round" stroke-linejoin="round">
-    ${jesLobe("M455 645 C400 540 340 445 262 428 C195 413 145 480 140 552", JES_GRN, 72, 570)}
-    ${jesLobe("M525 645 C580 540 640 445 718 428 C785 413 835 480 840 552", JES_VIO, 908, 570)}
-    ${jesLobe("M465 655 C470 488 500 355 565 300 C592 277 618 272 624 288", JES_GRN, 668, 256)}
-    <path d="M312 778 L283 615 L488 495 L696 615 L668 778 Z"
-          fill="${JES_YEL}" stroke="${JES_LINE}" stroke-width="${JES_EDGE}"/>
-    <circle cx="374" cy="708" r="26" fill="${JES_LINE}"/>
-    <circle cx="608" cy="706" r="26" fill="${JES_LINE}"/>
+  <defs>
+    <clipPath id="c${u}"><path d="${ABOVE_BRIM}"/></clipPath>
+    <mask id="m${u}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
+      <rect x="0" y="0" width="100" height="140" fill="#fff"/>
+      <path d="${JES_L}" fill="#000" stroke="#000" stroke-width="5.2" stroke-linejoin="round"/>
+    </mask>
+    <mask id="r${u}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="140">
+      <rect x="0" y="0" width="100" height="140" fill="#fff"/>
+      <path d="${JES_L}" fill="#000" stroke="#000" stroke-width="5.2" stroke-linejoin="round"/>
+      <path d="${JES_M}" fill="#000" stroke="#000" stroke-width="5.2" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <rect x="10" y="10" width="80" height="120" rx="4" fill="none" stroke="${JES_INK}"
+        stroke-width=".8" opacity=".4"/>
+  <g fill="none" stroke="${JES_INK}" stroke-width="2.6" stroke-linejoin="round"
+     stroke-linecap="round">
+    <g clip-path="url(#c${u})">
+      <path d="${JES_R}" mask="url(#r${u})"/>
+      <path d="${JES_M}" mask="url(#m${u})"/>
+      <path d="${JES_L}"/>
+    </g>
+    <path d="${BRIM_PATH}"/>
   </g>
-  <text x="50" y="126" text-anchor="middle" fill="#f2e6cd" stroke="${JES_LINE}"
-        stroke-width="2.8" paint-order="stroke" font-family="Georgia,serif"
-        font-size="10" letter-spacing="2.5">JESTER</text>
-</svg>`;
+  <circle cx="${jesNX(14)}" cy="74" r="3.4" fill="${JES_INK}"/>
+  <circle cx="${jesNX(86)}" cy="74" r="3.4" fill="${JES_INK}"/>
+  <circle cx="${jesNX(68)}" cy="28" r="4"   fill="${JES_INK}"/>
+  <text x="50" y="119" text-anchor="middle" fill="${JES_INK}" font-family="Georgia,serif"
+        font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
+</svg>`; };
 
 /* ==========================================================================
    GAME STATE + FLOW  (seat 0 = you, seat 1 = bot; dealer alternates)
@@ -817,6 +965,10 @@ const jesterSVG = () => `
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let G=null, pendingCard=null, difficulty="normal", peak=PEAK;
+
+/* Which of the four hotkey treatments to draw: k1 corner pip, k2 keycap below the card,
+   k3 bar along the foot, k4 ghosted watermark. See hotkeys.html for all four side by side. */
+const HOTKEY_STYLE = "k1";
 
 /* runRound is a long async chain that awaits human input. Starting a second one while the
    first is parked on a promise leaves two chains mutating the same G — which is exactly the
@@ -1071,6 +1223,13 @@ function render(){
     const el=cardEl(c, ok, legal ? !ok : false, tilt, fresh,
                     i*160 + (G.leadSeat===0?0:80));
     el.style.setProperty("--spin",(i%2?14:-14)+"deg");
+    // Only while a card is being asked for: during bidding the digits mean bids.
+    if(legal && i<9){
+      const k=document.createElement("div");
+      k.className="hotkey "+HOTKEY_STYLE;
+      k.textContent=i+1;
+      el.appendChild(k);
+    }
     if(ok) el.onclick=()=>{
       if(!pendingCard) return;                    // guard against a stale handler
       const r=pendingCard.resolve; pendingCard=null; hideSolver(); r(c);
@@ -1199,8 +1358,50 @@ function popup(text, good){
    solve each sample exactly; average. It deliberately does NOT peek at their real hand —
    the numbers are what a strong player could have worked out at the table, not hindsight.
    ========================================================================== */
-let solverOn = true;
-const SOLVER_SAMPLES = 60;
+/* On a phone the panel and the hand cannot both be on screen, so it starts closed there and
+   the open button is left showing. On anything wider it is open by default. */
+const NARROW = window.matchMedia("(max-width:620px)");
+let solverOn = !NARROW.matches;
+/* The panel must give the same answer every time you look at the same position — reopening
+   it, or the round re-rendering, must not shuffle the numbers. So its determinizations are
+   drawn from a generator seeded on the position itself rather than from Math.random. The
+   bot keeps using real randomness; only the read-out is pinned. */
+function mulberry(seed){
+  let a=seed>>>0;
+  return ()=>{
+    a=(a+0x6D2B79F5)>>>0;
+    let t=a;
+    t=Math.imul(t^(t>>>15), t|1);
+    t^=t+Math.imul(t^(t>>>7), t|61);
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+function posSeed(){
+  let h=2166136261>>>0;
+  const mix=v=>{ h^=(v>>>0); h=Math.imul(h,16777619)>>>0; };
+  G.hands[0].forEach(mix);
+  G.played.forEach(c=>mix(c+37));
+  mix(G.trumpCard+101); mix((G.trump+2)*7); mix(G.trickNo*31+G.size*131);
+  mix((G.bids[0]===null?15:G.bids[0])+40);
+  mix((G.bids[1]===null?15:G.bids[1])+70);
+  mix(G.table[1]===null?255:G.table[1]);
+  mix(G.tricks[0]*13+G.tricks[1]*17+G.leadSeat*3);
+  return h>>>0;
+}
+/* Partial Fisher-Yates against the supplied generator. */
+function sampleWith(rand, pool, k){
+  const a=pool.slice();
+  for(let i=0;i<k;i++){
+    const j=i+((rand()*(a.length-i))|0);
+    const t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a.slice(0,k);
+}
+/* A full eight-card solve is about 40ms, so sixty of them would freeze the tab for two and
+   a half seconds. Sample count therefore falls with the size of the hand still to play —
+   and it is a fixed function of that size, not a wall-clock budget, so the answer does not
+   depend on how busy the machine happened to be. */
+const samplesFor = n => n>=8 ? 14 : n>=7 ? 32 : 60;
 
 function unseenForMe(){
   const seen=new Set(G.hands[0]); seen.add(G.trumpCard);
@@ -1208,46 +1409,56 @@ function unseenForMe(){
   if(G.table[1]!==null) seen.add(G.table[1]);
   return DECK.filter(c=>!seen.has(c));
 }
-function consistentHand(pool, size, voids){
+function consistentHand(rand, pool, size, voids){
   let p = (voids && voids.size) ? pool.filter(c=>!voids.has(suitOf(c))) : pool;
   if(p.length<size) p=pool;
-  return sampleFrom(p, size);
+  return sampleWith(rand, p, size);
 }
 
+/* Both readings answer the same question: what is this option worth to me, in points, on
+   this round. Bid EV used to subtract the opponent's score once they had bid and not
+   before, which put the two halves of the same panel on different scales and made every
+   bid look bad against a strong opponent hand. That term is the same for every bid on the
+   list, so it never changed which bid was best — it only moved the whole column. It now
+   lives in the note instead, where it belongs. */
 function bidEV(legal){
   const unseen=unseenForMe(), size=G.size;
+  const rand=mulberry(posSeed());
   const dd=new DoubleDummy(G.trump, tricksPayoff), hm=maskOf(G.hands[0]);
-  const counts=[];
-  for(let i=0;i<SOLVER_SAMPLES;i++)
-    counts.push(Math.round(dd.value(hm, maskOf(sampleFrom(unseen,size)), G.leadSeat===0)));
-  const rows=legal.map(b=>{
-    let v=0;
-    for(const t of counts)
-      v += G.bids[1]===null ? roundScore(b,t) : roundScore(b,t)-roundScore(G.bids[1],size-t);
-    return {key:b, label:String(b), ev:v/counts.length};
-  });
+  const N=samplesFor(size), counts=[];
+  for(let i=0;i<N;i++)
+    counts.push(dd.value(hm, maskOf(sampleWith(rand,unseen,size)), G.leadSeat===0));
+
+  const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+  const rows=legal.map(b=>({
+    key:b, label:String(b), ev:mean(counts.map(t=>roundScore(b,t)))
+  }));
   const hits=new Map();
   counts.forEach(t=>hits.set(t,(hits.get(t)||0)+1));
   const mode=[...hits.entries()].sort((a,b)=>b[1]-a[1])[0];
-  return {rows, note:`${counts.length} deals · avg ${(counts.reduce((a,b)=>a+b,0)/counts.length).toFixed(1)}`
-    + ` tricks · most often ${mode[0]} (${Math.round(mode[1]/counts.length*100)}%)`};
+  let note=`${N} deals · you take ${mean(counts).toFixed(1)} tricks on average`
+         + ` · most often ${mode[0]} (${Math.round(mode[1]/N*100)}%)`;
+  if(G.bids[1]!==null)
+    note += ` · their bid of ${G.bids[1]} is worth `
+          + `${mean(counts.map(t=>roundScore(G.bids[1],size-t))).toFixed(1)} to them`;
+  return {rows, note};
 }
 
 function cardEV(legal){
   const unseen=unseenForMe(), oppSize=G.hands[1].length;
   if(oppSize<1 || unseen.length<oppSize) return {rows:[], note:"nothing to sample"};
+  const rand=mulberry(posSeed());
   const dd=new DoubleDummy(G.trump, scorePayoff(G.bids[0],G.bids[1])), hm=maskOf(G.hands[0]);
   const tot=new Map(legal.map(c=>[c,0]));
-  let n=0;
-  for(let i=0;i<SOLVER_SAMPLES;i++){
-    const vals=dd.rootValues(hm, maskOf(consistentHand(unseen,oppSize,G.myVoids)),
+  const N=samplesFor(oppSize);
+  for(let i=0;i<N;i++){
+    const vals=dd.rootValues(hm, maskOf(consistentHand(rand,unseen,oppSize,G.myVoids)),
                              G.table[1], G.tricks[0], G.tricks[1]);
     for(const c of legal) if(vals.has(c)) tot.set(c, tot.get(c)+vals.get(c));
-    n++;
   }
-  const rows=legal.map(c=>({key:c, label:cardName(c), ev:tot.get(c)/n}));
+  const rows=legal.map(c=>({key:c, label:cardName(c), ev:tot.get(c)/N}));
   const voids=[...(G.myVoids||[])].map(s=>SUIT_WORDS[s]);
-  return {rows, note:`${n} deals · ${unseen.length} cards unseen`
+  return {rows, note:`${N} deals · ${unseen.length} cards unseen`
     + (voids.length?` · they are void in ${voids.join(", ")}`:"")};
 }
 
@@ -1298,17 +1509,40 @@ function askCard(legal){
     },0);
   });
 }
+/* The bid prompt is deliberately not a modal. It sits in the empty middle of the table so
+   your hand stays on screen underneath it — you cannot choose a number without looking at
+   your cards, and on a phone the old centred dialog covered them completely. When they have
+   already bid, their number is the headline, because on this round it is the single most
+   important fact: it fixes what you are forbidden and tells you how the hand splits. */
 function askBid(legal){
-  const size=G.size, forbidden = G.dealer===0 && G.bids[1]!==null ? size-G.bids[1] : null;
+  const size=G.size, theirs=G.bids[1];
+  const forbidden = G.dealer===0 && theirs!==null ? size-theirs : null;
   return new Promise(res=>{
     const all=[...Array(size+1).keys()];
-    const ov=overlay(`<h2 class="o">Your bid</h2>
-      <p>${G.dealer===0
-        ? `They bid <b>${G.bids[1]}</b>. The hook forbids you <b>${forbidden}</b>.`
-        : `You bid first, and your bid forbids them <b>${size} − your bid</b>.`}
-        <br>Exactly right scores <b>2 + tricks</b>. Anything else loses the difference.</p>
+    const head = theirs!==null
+      ? `<div class="bidhead">
+           <div class="bidnum"><div class="cap o1">They bid</div>
+             <div class="bignum o">${theirs}</div></div>
+           <div class="bidsay">
+             <div class="bidmain o">of <b>${size}</b> ${size>1?"tricks":"trick"},
+               leaving <b>${size-theirs}</b> for you</div>
+             <div class="bidhook o1">the hook forbids you <b>${forbidden}</b></div>
+           </div>
+         </div>`
+      : `<div class="bidhead">
+           <div class="bidnum"><div class="cap o1">They bid</div>
+             <div class="bignum o dim">?</div></div>
+           <div class="bidsay">
+             <div class="bidmain o">You bid first on ${size} ${size>1?"tricks":"trick"}</div>
+             <div class="bidhook o1">your bid forbids them <b>${size} − yours</b></div>
+           </div>
+         </div>`;
+    const ov=overlay(`${head}
       <div class="bidrow">${all.map(b=>
-        `<button class="bidbtn o ${legal.includes(b)?"btn-blue":"no"}" data-b="${b}">${b}</button>`).join("")}</div>`);
+        `<button class="bidbtn o ${legal.includes(b)?"btn-blue":"no"}" data-b="${b}">${b}</button>`).join("")}</div>
+      <div class="bidfoot o1">Exactly right scores <b>2 + tricks</b>.
+        Anything else loses the difference. Press a <b>number key</b> to bid.</div>`);
+    ov.classList.add("bid");
     // Bids are ranked in the solver panel only. Printing the number under every button
     // turned the bid row into a lookup table and stopped it reading as a choice.
     if(solverOn){
@@ -1449,6 +1683,40 @@ function startScreen(){
     difficulty=b.dataset.d; ov.remove(); newGame();
   });
 }
+/* ==========================================================================
+   KEYBOARD — the whole game is playable from the number row.
+
+   Bidding and playing never overlap, so both can own the digits: while the bid prompt is up
+   a digit is that bid, and while a card is being asked for a digit is that position in the
+   fan. Both routes go through the same click handler the mouse uses, so there is one path
+   into the game state rather than two that can drift apart.
+   ========================================================================== */
+document.addEventListener("keydown", e=>{
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+
+  const bidOv=document.querySelector(".ov.bid");
+  if(bidOv){
+    if(!/^\d$/.test(e.key)) return;
+    const btn=bidOv.querySelector(`.bidbtn.btn-blue[data-b="${e.key}"]`);
+    if(btn){ e.preventDefault(); btn.click(); }
+    return;
+  }
+  if(pendingCard){
+    if(!/^[1-9]$/.test(e.key)) return;
+    const el=$("hand").querySelectorAll(".card")[+e.key - 1];
+    if(el && el.classList.contains("playable")){ e.preventDefault(); el.click(); }
+    return;
+  }
+  // The title card and the round summary both advance on any of the usual "go" keys.
+  // Backtick joins them: it sits under the escape key, so you can keep a finger on it and
+  // click through a whole round without moving your hand back to the middle of the board.
+  if(e.key===" " || e.key==="Enter" || e.key==="`"){
+    const go=document.querySelector(".ov .btn-gold, .startcard:not(.turned)");
+    if(go){ e.preventDefault(); go.click(); }
+  }
+});
+
 /* Card sizes are solved against the felt width, so a rotation or a window drag has to
    re-solve them. Debounced, because render() rebuilds the hand. */
 let resizeT=null;
@@ -1468,6 +1736,7 @@ $("svOpen").onclick=()=>{
   }
 };
 
+if(!solverOn) $("svOpen").style.display="block";
 startScreen();
 </script>
 </body>

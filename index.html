@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Up the River</title>
+<!-- The game itself lives in play.html. This exists so the folder root opens straight into
+     it — on GitHub Pages, on a local file:// browse, or from a bare domain. The meta refresh
+     is the fallback for when scripting is off; the replace() below keeps the redirect out of
+     the back-button history so leaving the game does not bounce you back into it. -->
+<meta http-equiv="refresh" content="0; url=play.html">
+<link rel="canonical" href="play.html">
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#0e1a16; color:#fdfbf3; display:grid; place-items:center;
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif; font-weight:700}
+  a{color:#f6c860}
+</style>
+</head>
+<body>
+<p>Dealing you in… <a href="play.html">play now</a> if nothing happens.</p>
+<script>location.replace("play.html");</script>
+</body>
+</html>
