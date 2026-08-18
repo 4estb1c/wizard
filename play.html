@@ -88,8 +88,11 @@ body{
   box-shadow:inset 0 0 0 5px #0b100e, inset 0 0 120px rgba(0,0,0,.4);
   display:flex; flex-direction:column;
 }
+/* A conic gradient nearly twice the size of the table, turning forever. will-change makes the
+   browser rasterise it once and then only rotate that texture on the GPU, instead of
+   re-rendering a very large translucent gradient on every frame. */
 .felt::before{
-  content:""; position:absolute; inset:-40%;
+  content:""; position:absolute; inset:-40%; will-change:transform;
   background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.055),transparent 38%,
     rgba(0,0,0,.07) 62%,transparent);
   animation:swirl 60s linear infinite; pointer-events:none;
@@ -161,22 +164,30 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .zone.mid{flex:1; gap:34px}
 .zone.mine{height:200px; flex-direction:column; gap:8px; padding-bottom:12px}
 
-.tag{background:rgba(8,18,14,.62); border-radius:999px; padding:6px 16px; font-size:11.5px;
+.tag{background:rgba(9,19,15,.82); border-radius:999px; padding:6px 16px; font-size:11.5px;
   text-transform:uppercase; letter-spacing:.11em;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28);
-  backdrop-filter:blur(4px)}
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28)}
 .tag b{color:#f6c860; letter-spacing:.02em}
 
 .slot{width:var(--cw); height:var(--ch); border-radius:9px;
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.1); display:grid; place-items:center;
   font-size:22px; color:rgba(255,255,255,.14)}
+/* Holding a card in flight: the frame is still drawn, but the diamond that marks an empty
+   slot is not — the card is on its way, so the slot is no longer offering itself. */
+.slot.empty{color:transparent}
 .slot-wrap{display:flex; flex-direction:column; align-items:center; gap:8px}
 .slot-wrap .cap{font-size:9px; color:rgba(255,255,255,.5); text-transform:uppercase;
   letter-spacing:.16em}
 
 .hand{display:flex; justify-content:center; align-items:flex-end; min-height:calc(var(--ch) + 26px)}
-.hand .card{margin-left:calc(-1 * var(--ovl,13px))}
-.hand .card:first-child{margin-left:0}
+/* Each card sits in a wrapper, and the two split the work on transform: the wrapper breathes,
+   the card lifts. They cannot share one element — a running animation on a property suppresses
+   transitions on that same property, so while the idle bob animated the card's own transform
+   the hover lift had no way to interpolate and simply snapped into place. */
+.cardwrap{position:relative; flex:0 0 auto; will-change:transform}
+.hand .cardwrap{margin-left:calc(-1 * var(--ovl,13px))}
+.hand .cardwrap:first-child{margin-left:0}
+.hand .cardwrap:hover{z-index:9}
 
 /* ============================================================ cards */
 .card{
@@ -185,10 +196,11 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
   font-size:calc(var(--cw) * .22);
   box-shadow:0 6px 16px rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.45),
     inset 0 0 0 2px #1b1f35, inset 0 0 0 4px var(--face);
-  transition:transform .11s ease, filter .11s ease, box-shadow .11s ease;
+  /* Transform only. Transitioning box-shadow and filter as well meant every hover repainted
+     the whole card — and each card is a full inline SVG — so running the mouse along the fan
+     re-rasterised eight of them per frame. Transform alone is handled by the compositor. */
+  transition:transform .13s cubic-bezier(.22,.72,.3,1);
 }
-.card.playable:hover{box-shadow:0 16px 26px rgba(0,0,0,.45), inset 0 0 0 2px #1b1f35,
-  inset 0 0 0 4px var(--face)}
 /* The face is one SVG on a fixed viewBox, so it scales exactly with the card. Corner
    indices stay HTML and are sized in em off the card's own width. */
 .card svg{position:absolute; inset:0; width:100%; height:100%}
@@ -197,9 +209,12 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .card .cnr.tl{top:6%; left:7.5%}
 .card .cnr.br{bottom:6%; right:7.5%; transform:rotate(180deg)}
 .card .cnr i{display:block; font-style:normal; font-size:.9em; margin-top:.08em}
-.card.playable{cursor:pointer}
-.card.playable:hover{transform:translateY(-20px) scale(1.06) rotate(0deg)!important; z-index:9;
-  filter:brightness(1.07)}
+/* will-change promotes each playable card to its own layer up front, so the lift is a GPU
+   transform of an already-rasterised texture rather than a fresh paint of the SVG.
+   No !important here: nothing competes for transform any more, so the transition governs the
+   whole move in and out of the raised state. */
+.card.playable{cursor:pointer; will-change:transform}
+.card.playable:hover{transform:translate3d(0,-20px,0) scale(1.06) rotate(0deg)}
 .card.dim{filter:brightness(.46) saturate(.35) contrast(.9)}
 
 /* ---- hotkey indicators ----
@@ -237,8 +252,16 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
    carry it through — otherwise the card animates flat and then snaps into its rotation.
    --dx/--dy are measured at deal time so each card flies in from the actual deck pile. */
 .card, .backs .b{transform:rotate(var(--tilt,0deg))}
+/* The idle bob is not a CSS animation — see startIdle(). A keyframe animation replaces the
+   transform outright and outranks a transition, so hovering had nothing to interpolate from
+   and the card snapped to the raised position. The bob is an additive Web Animation instead,
+   which composes with whatever transform the element already has, so the hover transition
+   runs underneath it and lifts the card from wherever the bob has it at that instant. */
+.hand .card{will-change:transform}
+
 .card.predeal, .backs .b.predeal{opacity:0}
-.card.deal, .backs .b.deal{animation:deal .29s cubic-bezier(.18,.85,.3,1) backwards}
+.card.deal, .backs .b.deal{animation:deal .29s cubic-bezier(.18,.85,.3,1) backwards;
+  will-change:transform, opacity}
 @keyframes deal{
   from{transform:translate(var(--dx,0px),var(--dy,-56px)) rotate(var(--spin,0deg)) scale(.74);
        opacity:0}
@@ -337,9 +360,8 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .backs .b:first-child{margin-left:0}
 
 .trumpbadge{position:absolute; top:16px; left:18px; z-index:3; display:flex; align-items:center;
-  gap:10px; background:rgba(8,18,14,.62); border-radius:12px; padding:9px 14px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28);
-  backdrop-filter:blur(4px)}
+  gap:10px; background:rgba(9,19,15,.84); border-radius:12px; padding:9px 14px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 2px 10px rgba(0,0,0,.28)}
 .trumpbadge .s{font-size:28px; line-height:1}
 .trumpbadge .k{font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em}
 .trumpbadge .v{font-size:13px; text-transform:capitalize}
@@ -386,7 +408,11 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
   color:#5d6673; text-decoration:line-through; cursor:not-allowed}
 .bidbtn.no:hover{filter:none} .bidbtn.no:active{transform:none; filter:none}
 .suitrow{display:flex; gap:11px; justify-content:center; margin:12px 0}
-.suitbtn{width:72px; height:72px; font-size:34px; background:var(--face)}
+.suitbtn{width:72px; height:72px; font-size:34px; background:var(--face); position:relative}
+/* Both keys that work, stacked in the corner: the position, and the suit's own letter. */
+.suitkey{position:absolute; top:4px; right:6px; font-style:normal; line-height:1.05;
+  text-align:right; font-size:10px; font-weight:800; color:#8a929c}
+.suitkey em{display:block; font-style:normal; font-size:9px; opacity:.75}
 .tbl{width:100%; font-size:14px; margin:12px 0 14px; border-collapse:separate; border-spacing:0 5px}
 .tbl th{font-size:9px; color:var(--dim); padding:2px 8px; text-transform:uppercase;
   letter-spacing:.14em}
@@ -408,9 +434,8 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 
 /* ---- solver overlay ---- */
 .solver{position:absolute; top:16px; right:18px; z-index:22; width:224px;
-  background:rgba(8,18,14,.82); border-radius:12px; padding:10px 11px 9px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.11), 0 6px 22px rgba(0,0,0,.4);
-  backdrop-filter:blur(7px)}
+  background:rgba(9,19,15,.94); border-radius:12px; padding:10px 11px 9px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.11), 0 6px 22px rgba(0,0,0,.4)}
 .sv-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
 .sv-head span{font-size:9px; text-transform:uppercase; letter-spacing:.16em; color:#8fc3ab}
 .sv-head button{background:none; box-shadow:none; padding:0 4px; font-size:16px; line-height:1;
@@ -423,16 +448,17 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .sv-bar i{display:block; height:100%; background:#4fa8e8; border-radius:3px}
 .sv-row.best .sv-bar i{background:#5fd39a}
 .sv-v{flex:0 0 42px; text-align:right; font-variant-numeric:tabular-nums; color:#cbd4de}
+/* Chance the card takes the trick. Sits between the bar and the EV so the two numbers read
+   as a pair: how likely it is to win, and what winning is worth. */
+.sv-w{flex:0 0 32px; text-align:right; font-variant-numeric:tabular-nums; font-size:10px;
+  color:#8fa0b2}
+.sv-row.best .sv-w{color:#7fd3a0}
 .sv-note{margin-top:8px; padding-top:7px; font-size:9.5px; font-weight:600; line-height:1.5;
   color:#7f8b96; border-top:1px solid rgba(255,255,255,.09)}
-.sv-why{margin-top:7px; padding-top:7px; border-top:1px solid rgba(255,255,255,.09)}
-.sv-why p{font-size:10px; font-weight:600; line-height:1.55; color:#a8b3c0; margin-bottom:6px}
-.sv-why p:last-child{margin-bottom:0}
-.sv-why b{color:#f6c860}
 
 /* ---- post-trick review ---- */
 .ov.review .box{text-align:left; width:min(500px,calc(100vw - 28px))}
-.rv{margin:4px 0 2px}
+.rv{margin:4px 0 2px; max-height:46vh; overflow-y:auto; padding-right:4px}
 .rv-row{display:grid; grid-template-columns:76px auto; gap:2px 10px; padding:9px 11px;
   border-radius:8px; margin-bottom:7px; background:rgba(0,0,0,.24);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
@@ -445,11 +471,9 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .rv-row.ok .rv-v{color:#8ff0a6} .rv-row.bad .rv-v{color:#ff9186}
 .rv-note{grid-column:2; font-size:11px; font-weight:600; color:#c3cbd6; line-height:1.5}
 .rv-note b{color:#f6c860}
-.rv-why{margin-top:10px; padding-top:9px; border-top:1px solid rgba(255,255,255,.09)}
-.rv-why p{font-size:11.5px; font-weight:600; line-height:1.6; color:#aeb9c6; margin-bottom:7px}
-.rv-why p:last-child{margin-bottom:0}
-.rv-why b{color:#f6c860}
-.rv-go{margin-top:14px; width:100%}
+.rv-acts{display:flex; gap:9px; margin-top:14px}
+.rv-acts button{flex:1}
+.rv-copy{flex:0 0 auto!important; padding-left:16px; padding-right:16px}
 .sv-open{position:absolute; top:16px; right:18px; z-index:22; padding:7px 13px; font-size:10px;
   text-transform:uppercase; letter-spacing:.12em; background:rgba(8,18,14,.72)}
 /* ============================================================ narrow screens
@@ -689,6 +713,13 @@ class DoubleDummy{
   constructor(trump, payoff, budget=400000){
     this.trump=trump; this.payoff=payoff; this.budget=budget; this.nodes=0;
     this.tt=new Map(); this.order=DoubleDummy.order(trump);
+    /* trickWinner is a chain of branches over the two special ranks and the trump rule. In
+       the innermost loop that cost adds up, and the answer only ever depends on the pair, so
+       resolve all 576 pairs once per solver instead. */
+    this.wins=new Uint8Array(DECK_SIZE*DECK_SIZE);
+    for(let l=0;l<DECK_SIZE;l++)
+      for(let f=0;f<DECK_SIZE;f++)
+        this.wins[l*DECK_SIZE+f] = trickWinner(l,f,trump)===1 ? 1 : 0;
   }
   static order(trump){
     const power=c=>{
@@ -704,34 +735,88 @@ class DoubleDummy{
     for(const c of this.order) if((ok>>>c)&1) out.push(c);
     return out;
   }
+  /* Cards you cannot tell apart are one move, not several.
+     If two of the mover's legal cards are in the same suit and every rank between them is
+     already gone from both hands, the two are interchangeable against everything still live:
+     they beat the same cards, lose to the same cards, and the positions they leave behind are
+     the same up to renaming. Searching both doubles the work for an identical answer. The
+     same holds for the two Wizards and the two Jesters, which are literally identical.
+     Only the higher card of each run is kept — an arbitrary but consistent choice.
+     This never runs at the root, where every legal card needs its own reported value. */
+  static prune(ok, live){
+    for(let c=0;c<NUM_NORMAL;c++){
+      if(!((ok>>>c)&1)) continue;
+      const suit=(c/NUM_RANKS)|0;
+      let d=c+1;                                 // step over ranks nobody still holds
+      while(d<NUM_NORMAL && ((d/NUM_RANKS)|0)===suit && !((live>>>d)&1)) d++;
+      if(d<NUM_NORMAL && ((d/NUM_RANKS)|0)===suit && ((ok>>>d)&1)) ok &= ~(1<<c);
+    }
+    if((ok>>>FIRST_WIZARD & 1) && (ok>>>(FIRST_WIZARD+1) & 1)) ok &= ~(1<<FIRST_WIZARD);
+    if((ok>>>FIRST_JESTER & 1) && (ok>>>(FIRST_JESTER+1) & 1)) ok &= ~(1<<FIRST_JESTER);
+    return ok;
+  }
+
+  /* Hot path. What is here for speed rather than logic:
+       · the table is keyed on numbers rather than a built-up string, and the entry is packed
+         into one integer, so a node neither builds a string nor allocates;
+       · the entry also carries the move that was best last time. Trying it first is what makes
+         alpha-beta cut early, and it is the single largest saving in the search;
+       · indistinguishable cards are collapsed to one representative (see prune);
+       · trick outcomes come from a precomputed pair table;
+       · the move loop walks the fixed power order and tests the mask in place.
+     Values are small integers — round scores differ by at most eighteen — so +64 keeps the
+     packed form positive, with the move in the next five bits and the bound flag in the low
+     two. */
   search(a,b,aMove,lead,at,bt,alpha,beta){
     if(a===0 && b===0) return this.payoff(at,bt);
     if(this.nodes>=this.budget) return this.payoff(at,bt);
-    const key=a+"|"+b+"|"+(aMove?1:0)+"|"+lead+"|"+at;
-    const hit=this.tt.get(key);
-    if(hit!==undefined){
-      if(hit[1]===EXACT) return hit[0];
-      if(hit[1]===LOWER && hit[0]>=beta) return hit[0];
-      if(hit[1]===UPPER && hit[0]<=alpha) return hit[0];
+
+    const k1=a*16777216+b;                       // 48 bits: exact in a double
+    const k2=(aMove?1:0)|((lead===null?25:lead)<<1)|(at<<6);
+    let inner=this.tt.get(k1), ttMove=-1;
+    if(inner!==undefined){
+      const packed=inner.get(k2);
+      if(packed!==undefined){
+        const val=(packed>>7)-64, flag=packed&3;
+        ttMove=(packed>>2)&31;
+        if(flag===EXACT) return val;
+        if(flag===LOWER && val>=beta) return val;
+        if(flag===UPPER && val<=alpha) return val;
+      }
     }
     this.nodes++;
     const a0=alpha, b0=beta, hand=aMove?a:b;
-    let best=aMove?-Infinity:Infinity, v;
-    for(const card of this.moves(hand, lead)){
+    /* The card on the table counts as live. It is no longer in either hand, but it is still
+       being compared against — treating it as gone made a led J look like a hole, so the 10
+       and the Q either side of it appeared interchangeable when one loses to it and the other
+       beats it. */
+    const ok=DoubleDummy.prune(legalMask(hand, lead),
+                               (a|b) | (lead===null ? 0 : 1<<lead));
+    const order=this.order, wins=this.wins;
+    let best=aMove?-Infinity:Infinity, bestMove=31, v;
+
+    /* The stored move first, then the power order skipping it. */
+    for(let oi=-1; oi<order.length; oi++){
+      const card = oi<0 ? ttMove : order[oi];
+      if(card<0 || card>=DECK_SIZE) continue;
+      if(oi>=0 && card===ttMove) continue;
+      if(!((ok>>>card)&1)) continue;
       const bit=1<<card;
       if(lead===null){
         v = aMove ? this.search(a^bit,b,false,card,at,bt,alpha,beta)
                   : this.search(a,b^bit,true ,card,at,bt,alpha,beta);
       }else{
-        const fw = trickWinner(lead,card,this.trump)===1;
+        const fw = wins[lead*DECK_SIZE+card]===1;
         v = aMove ? this.search(a^bit,b, fw,null,at+(fw?1:0),bt+(fw?0:1),alpha,beta)
                   : this.search(a,b^bit,!fw,null,at+(fw?0:1),bt+(fw?1:0),alpha,beta);
       }
-      if(aMove){ if(v>best)best=v; if(best>alpha)alpha=best; }
-      else     { if(v<best)best=v; if(best<beta )beta =best; }
+      if(aMove){ if(v>best){best=v; bestMove=card;} if(best>alpha)alpha=best; }
+      else     { if(v<best){best=v; bestMove=card;} if(best<beta )beta =best; }
       if(alpha>=beta) break;
     }
-    this.tt.set(key,[best, best<=a0?UPPER : best>=b0?LOWER : EXACT]);
+    if(inner===undefined){ inner=new Map(); this.tt.set(k1, inner); }
+    inner.set(k2, ((best+64)<<7) | (bestMove<<2)
+                | (best<=a0?UPPER : best>=b0?LOWER : EXACT));
     return best;
   }
   /* One solver instance is reused across all the determinizations of a single decision, so
@@ -742,7 +827,7 @@ class DoubleDummy{
      keys carry both hands, and only cleared when it gets big enough to cost memory. */
   reset(){
     this.nodes=0;
-    if(this.tt.size>120000) this.tt.clear();
+    if(this.tt.size>60000) this.tt.clear();      // outer buckets, each holding a few entries
   }
   value(a,b,aMove=true,lead=null,at=0,bt=0){
     this.reset();
@@ -852,7 +937,7 @@ function botPlay(hand, oppSize, unseen, voids, trump, myBid, oppBid, myT, oppT, 
    against the cream card face, and the corner indices are small type. */
 const SUIT_INK  = ["#2b3a67", "#d6302f", "#b8840a", "#1e7a4b"];
 const SUIT_GLOW = ["#dfe6f2", "#ff9186", "#f5c542", "#5fd39a"];
-const RED_INK="#d6302f", GOLD_INK="#d4a53a";
+const GOLD_INK="#d4a53a";
 const inkOf = s => SUIT_INK[s];
 
 const frameSVG = c => `
@@ -1052,19 +1137,23 @@ async function runRound(){
   G.voids=new Set();                    // suits YOU have shown a void in (bot's read)
   G.myVoids=new Set();                  // suits THEY have shown a void in (your read)
   G.trickNo=0; G.leader=lead; G.thinking=false;
-  G.freshDeal=true; G._lastTable=[null,null];   // animate this deal once, then stop
+  G.freshDeal=true; G._dealSeq=(G._dealSeq||0)+1;   // animate this deal once, then stop
   G._from=[null,null];                          // where each side's card started this trick
-  G.review=[]; G._lastEV=null;                  // decisions awaiting the post-trick review
+  G.review=[]; G._lastEV=null;                  // decisions awaiting the end-of-round review
+  G.handDealt=G.hands[0].slice();               // hands are consumed in play; keep the deal
+  G.trickLog=[];
   G.logLines=[]; $("log").innerHTML="";         // the log is a record of this round only
 
-  // Paint the freshly dealt hand BEFORE anything is asked. Naming trump off a flipped
-  // Wizard is a decision about your own cards, so you have to be able to see them.
+  // Only the flipped-Wizard case needs a render before trump is known — naming trump is a
+  // decision about your own cards, so you have to see them first. Every other round renders
+  // exactly once here, which matters: render() rebuilds the hand, so a second call moments
+  // after the first threw away the deal animation the first one had just started.
   G.trump=NO_TRUMP;
-  render();
-
   if(isWizard(G.trumpCard)){
+    render();
     G.trump = dealer===0 ? await askTrump() : botNameTrump();
     if(stale(gen)) return;
+    G.freshDeal=true; G._dealSeq++;       // the post-trump render deals again, deliberately
   }
   else if(!isJester(G.trumpCard)) G.trump=suitOf(G.trumpCard);
 
@@ -1104,7 +1193,7 @@ async function runRound(){
         if(stale(gen)) return;
         if(legal.length>1 && G._lastEV)
           fileReview({ label:`Trick ${t+1}`, grade:gradeRows(G._lastEV.rows, card),
-                       why:G._lastEV._why });
+                       facts:plain(G._lastEV._why) });
         G._lastEV=null;
       }else{
         G.thinking=true; render(); await sleep(300);
@@ -1129,14 +1218,14 @@ async function runRound(){
     }
     const followerWon=trickWinner(G.table[G.leader], G.table[follower], G.trump)===1;
     const winner=followerWon?follower:G.leader;
+    G.trickLog.push({ n:t+1, iLed:G.leader===0, mine:G.table[0], theirs:G.table[1],
+                      won:winner===0 });
     G.tricks[winner]++;
     G.played.push(G.table[0], G.table[1]);
     render();
     popup(winner===0?"+1 TRICK":"THEIRS", winner===0);
     say(`Trick ${t+1}: ${cardName(G.table[0])} vs ${cardName(G.table[1])}, ${winner===0?"you":"they"} take it`);
     await sleep(900);
-    if(stale(gen)) return;
-    await showTrickReview(t, winner);
     if(stale(gen)) return;
     G.leader=winner; G.table=[null,null]; render();
   }
@@ -1145,6 +1234,8 @@ async function runRound(){
   G.totals[0]+=sc[0]; G.totals[1]+=sc[1];
   render();
   await showRoundEnd(sc);
+  if(stale(gen)) return;
+  await showRoundReview();
   if(stale(gen)) return;
 
   G.idx++;
@@ -1218,7 +1309,6 @@ function render(){
   // render() runs on every state change, and it rebuilds the DOM each time. Only animate
   // what is actually new, or the whole hand replays the deal on every bot move.
   const fresh = !!G.freshDeal;
-  const lastTable = G._lastTable || [null,null];
 
   const backs=$("oppBacks"); backs.innerHTML="";
   for(let i=0;i<G.hands[1].length;i++){
@@ -1240,7 +1330,11 @@ function render(){
     el.innerHTML="";
     if(G.table[seat]===null){ el.className="slot"; el.textContent="◆"; }
     else{
-      el.className="";
+      // The frame stays. Dropping it the moment the card was played left the space empty for
+      // the whole flight, so the slot looked like it vanished and the card arrived somewhere
+      // unrelated. Keeping it gives the card a target to land in; once it lands it covers the
+      // frame exactly, since both are one card wide.
+      el.className="slot empty";
       const c=cardEl(G.table[seat],false,false,0,false,0);
       el.appendChild(c);
       playAnim(c, G.table[seat], seat);
@@ -1250,7 +1344,7 @@ function render(){
   const tc=$("trumpCard"); tc.innerHTML="";
   if(G.trumpCard!=null) tc.appendChild(cardEl(G.trumpCard,false,false,0,false,0));
 
-  const h=$("hand"); h.innerHTML="";
+  const h=$("hand");
   const legal = pendingCard ? pendingCard.legal : null;
   const sorted=G.hands[0].slice().sort((a,b)=>(suitOf(a)-suitOf(b))||(a-b));
   // Eight cards at 70px wide need 469px of fan, which no phone has. Solve for the width
@@ -1264,6 +1358,17 @@ function render(){
   root.setProperty("--cw", cw+"px");
   root.setProperty("--ch", Math.round(cw*1.419)+"px");
   root.setProperty("--ovl", Math.round(cw*OVL)+"px");
+
+  // render() runs on every state change, and rebuilding eight SVG-heavy cards each time is
+  // both wasted work and a guaranteed way to kill any animation mid-flight. Nothing about
+  // the hand can change without changing this signature, so when it matches, leave the DOM
+  // exactly where it is.
+  const sig=sorted.join(",")+"|"+(legal?legal.join(","):"-")+"|"+cw
+          + "|"+(fresh?"deal"+G._dealSeq:"");
+  const rebuild = h.dataset.sig!==sig;
+  if(rebuild){
+  h.dataset.sig=sig;
+  h.innerHTML="";
   sorted.forEach((c,i)=>{
     const ok = legal ? legal.includes(c) : false;
     // a little fan, so the hand does not look like a spreadsheet row
@@ -1282,12 +1387,18 @@ function render(){
       if(!pendingCard) return;                    // guard against a stale handler
       const r=pendingCard.resolve; pendingCard=null; hideSolver(); r(c);
     };
-    h.appendChild(el);
+    const wrap=document.createElement("div");
+    wrap.className="cardwrap";
+    wrap.dataset.idx=i;                           // this card's phase in the idle bob
+    wrap.appendChild(el);
+    if(!fresh) startIdle(wrap);                   // a dealt card starts breathing on landing
+    h.appendChild(wrap);
   });
+  }
 
   // Cards start hidden, then a frame later we measure where the deck actually is and fly
   // each one in from it. Measuring has to happen after layout, hence the two-step.
-  if(fresh) dealFrom($("deckPile"));
+  if(fresh && rebuild) dealFrom($("deckPile"));
   G.freshDeal=false;
 }
 
@@ -1379,15 +1490,47 @@ function playAnim(el, card, seat){
   }
 }
 
+/* The hand is never quite still. The bob runs on the wrapper, which owns nothing else, so the
+   card inside keeps its transform free for the hover transition — that separation is what
+   stops the lift snapping. A negative delay starts each card partway through its own cycle and
+   the periods differ slightly, so the row never pulses in unison. */
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
+function startIdle(el){
+  if(REDUCED.matches || el._idle) return;
+  const i = +(el.dataset.idx || 0);
+  el._idle = el.animate(
+    [{transform:"translateY(0px)"},
+     {transform:"translateY(-2.6px)"},
+     {transform:"translateY(0px)"}],
+    { duration: 3100 + i*230, delay: -i*370, iterations: Infinity,
+      easing: "ease-in-out" });
+}
+
+/* Read every rect, then write every style. Interleaving them — measure a card, set its
+   offsets, measure the next — made each measurement force a fresh synchronous layout, so a
+   sixteen-card deal cost sixteen layouts inside one frame. That hitch landed exactly as the
+   deal began, which is why the first moment of it always looked worse than the rest. */
 function dealFrom(pile){
   const from=pile.getBoundingClientRect();
   requestAnimationFrame(()=>{
-    document.querySelectorAll(".predeal").forEach(el=>{
+    const els=[...document.querySelectorAll(".predeal")];
+    const offsets=els.map(el=>{                       // read pass: no writes in between
       const r=el.getBoundingClientRect();
-      el.style.setProperty("--dx", Math.round(from.left-r.left)+"px");
-      el.style.setProperty("--dy", Math.round(from.top-r.top)+"px");
+      return [Math.round(from.left-r.left), Math.round(from.top-r.top)];
+    });
+    els.forEach((el,i)=>{                             // write pass
+      el.style.setProperty("--dx", offsets[i][0]+"px");
+      el.style.setProperty("--dy", offsets[i][1]+"px");
       el.classList.remove("predeal");
       el.classList.add("deal");
+      // .deal owns transform while the card is in flight; drop it on landing so the idle
+      // breathing can take over without the two animations fighting over the property.
+      el.addEventListener("animationend", ()=>{
+        el.classList.remove("deal");
+        el.style.willChange="";                       // release the layer once it has landed
+        const wrap=el.parentElement;
+        if(wrap && wrap.classList.contains("cardwrap")) startIdle(wrap);
+      }, {once:true});
     });
   });
 }
@@ -1445,11 +1588,12 @@ function sampleWith(rand, pool, k){
   }
   return a.slice(0,k);
 }
-/* A full eight-card solve is about 40ms, so sixty of them would freeze the tab for two and
-   a half seconds. Sample count therefore falls with the size of the hand still to play —
-   and it is a fixed function of that size, not a wall-clock budget, so the answer does not
-   depend on how busy the machine happened to be. */
-const samplesFor = n => n>=8 ? 14 : n>=7 ? 32 : 60;
+/* This used to slide down to fourteen samples on the biggest rounds, because an eight-card
+   solve cost 21ms and sixty of them would have frozen the tab. After the search rewrite one
+   costs 0.83ms, so the whole panel is about 50ms at any size and there is no longer a reason
+   to be stingy where it hurts most — eight cards was exactly where the estimate was noisiest.
+   A fixed count rather than a time budget, so the answer never depends on machine speed. */
+const samplesFor = () => 80;
 
 function unseenForMe(){
   const seen=new Set(G.hands[0]); seen.add(G.trumpCard);
@@ -1484,22 +1628,42 @@ function consistentHand(rand, pool, size, voids){
    to choose with. It also explains something the old model could not: several different bids
    can all be right, and among makeable ones the highest pays best, since a made bid scores
    2 + tricks. */
-function bidBands(){
+/* A determinization is a few milliseconds of straight-line search, and there are up to sixty
+   of them. Run back to back that is a half-second with the main thread pinned, which is what
+   made the dealing and the card flights stutter — they were not slow, they were stopped.
+   Handing control back between samples costs nothing in total time and lets every frame in
+   between get painted. */
+const yieldFrame = () => new Promise(r=>setTimeout(r,0));
+/* A determinization costs 1.3ms at six cards but 21ms at eight, so a fixed "yield every other
+   sample" either wastes time or blocks for two frames. Yield on elapsed instead: hand control
+   back once about half a frame has been spent, whatever that turns out to be on this machine.
+   Pacing only — the sample sequence and therefore the result are untouched. */
+function paced(){
+  let t=performance.now();
+  return async () => {
+    if(performance.now()-t < 8) return;
+    await yieldFrame();
+    t=performance.now();
+  };
+}
+
+async function bidBands(){
   const unseen=unseenForMe(), size=G.size, hm=maskOf(G.hands[0]);
   const rand=mulberry(posSeed());
   const ddHi=new DoubleDummy(G.trump, tricksPayoff);
   const ddLo=new DoubleDummy(G.trump, at=>-at);
-  const N=samplesFor(size), bands=[];
+  const N=samplesFor(size), bands=[], breathe=paced();
   for(let i=0;i<N;i++){
     const om=maskOf(sampleWith(rand,unseen,size));
     const hi=ddHi.value(hm,om,G.leadSeat===0);
     const lo=-ddLo.value(hm,om,G.leadSeat===0);
     bands.push([Math.min(lo,hi), Math.max(lo,hi)]);
+    await breathe();
   }
   return bands;
 }
-function bidEV(legal){
-  const size=G.size, bands=bidBands(), N=bands.length;
+async function bidEV(legal){
+  const size=G.size, bands=await bidBands(), N=bands.length;
   const rows=legal.map(b=>{
     let v=0;
     for(const [lo,hi] of bands)
@@ -1556,97 +1720,74 @@ const CASE = {
   leadJesterSafe: 47,      // % of the time leading the Jester is best, once at or over bid
 };
 
+/* One line, the single fact that decided it. These appear only in the review after a trick,
+   so they have to earn their place against a player who wants to get on with the game. */
 function explainBid(res){
-  const size=G.size, unseen=unseenForMe(), u=unseen.length, h=size;
-  const out=[];
+  const size=G.size, unseen=unseenForMe(), u=unseen.length;
   const lo=res.bands.reduce((s,x)=>s+x[0],0)/res.bands.length;
   const hi=res.bands.reduce((s,x)=>s+x[1],0)/res.bands.length;
-  const exact=res.bands.filter(x=>x[0]===x[1]).length;
-  out.push(`Your hand can be played for <b>${lo.toFixed(1)}</b> to <b>${hi.toFixed(1)}</b> tricks. `
-    + `In ${pct(exact/res.bands.length)}% of the sampled layouts it is pinned to a single number; `
-    + `otherwise you get to choose, and among makeable bids the highest pays most, since a made `
-    + `bid scores 2 + tricks.`);
-
-  const wiz=unseen.filter(isWizard).length, jes=unseen.filter(isJester).length;
-  if(wiz) out.push(`${wiz} Wizard${wiz>1?"s are":" is"} still out. They hold `
-    + `<b>${pct(pAtLeastOne(u,h,wiz))}%</b> to have at least one — a Wizard led always wins, so `
-    + `that is a trick you cannot stop.`);
-  if(jes) out.push(`${jes} Jester${jes>1?"s are":" is"} still out (<b>${pct(pAtLeastOne(u,h,jes))}%</b> `
-    + `they hold one), which is a trick they cannot win with.`);
-
-  if(G.trump>=0){
-    const myTrumps=G.hands[0].filter(c=>suitOf(c)===G.trump).length;
-    const outTrumps=unseen.filter(c=>suitOf(c)===G.trump).length;
-    out.push(`You hold <b>${myTrumps}</b> ${SUIT_WORDS[G.trump]}; ${outTrumps} unseen, so they average `
-      + `<b>${(outTrumps*h/u).toFixed(1)}</b>.`);
-  }
-  if(G.dealer===0 && G.bids[1]!==null)
-    out.push(`You are dealt last, so the hook applies to you: you cannot bid ${size-G.bids[1]}. `
-      + `That bites in about ${CASE.hookRate}% of rounds and costs roughly ${CASE.hookCost} points when it does.`);
-  else
-    out.push(`You bid first, so your bid takes ${size} − your bid away from them.`);
-  return out;
+  const wiz=unseen.filter(isWizard).length;
+  let t=`Playable for <b>${lo.toFixed(1)}–${hi.toFixed(1)}</b> tricks; the highest makeable bid pays most.`;
+  if(G.dealer===0 && G.bids[1]!==null && !legalBids(size,true,G.bids[1]).includes(Math.round(hi)))
+    t+=` The hook took it away — that happens in ${CASE.hookRate}% of rounds.`;
+  else if(wiz)
+    t+=` ${pct(pAtLeastOne(u,size,wiz))}% they hold a Wizard.`;
+  return [t];
 }
 
 function explainCard(legal, res){
-  const out=[], need=G.bids[0]-G.tricks[0], left=G.hands[0].length;
+  const need=G.bids[0]-G.tricks[0], left=G.hands[0].length;
   const unseen=unseenForMe(), u=unseen.length, h=G.hands[1].length;
-  const leading=G.table[1]===null;
-
-  out.push(need<=0
-    ? `You are at your bid of ${G.bids[0]} with ${left} card${left>1?"s":""} left — every further trick costs a point.`
-    : need>=left
-      ? `You need all ${left} remaining trick${left>1?"s":""} to make ${G.bids[0]}.`
-      : `You need <b>${need}</b> more from <b>${left}</b> remaining.`);
-
-  if(leading){
-    const best=res.rows.slice().sort((x,y)=>y.ev-x.ev)[0];
-    if(best){
-      const m=beatsCount(best.key, unseen);
-      out.push(`If you lead the ${best.label}, <b>${m}</b> of the ${u} unseen cards beat it, and they `
-        + `hold ${h} of those ${u} — so it is beaten <b>${pct(pAtLeastOne(u,h,m))}%</b> of the time.`);
-    }
-    if(need<=0) out.push(`Once you are at your bid, leading the Jester is the best play `
-      + `${CASE.leadJesterSafe}% of the time — it cannot win, so it cannot break your contract.`);
-  }else{
-    const led=G.table[1];
-    const canWin=legal.filter(c=>trickWinner(led,c,G.trump)===1).length;
-    out.push(canWin
-      ? `${canWin} of your ${legal.length} legal cards would take this trick.`
-      : `None of your legal cards can take this trick.`);
-    if(need<=0) out.push(`Sitting at or over your bid, the best card gives the trick away `
-      + `${CASE.duckWhenSafe}% of the time.`);
-    else if(need>=left) out.push(`Needing every trick, the best card takes it `
-      + `${CASE.winWhenNeeded}% of the time.`);
+  const best=res.rows.slice().sort((x,y)=>y.ev-x.ev)[0];
+  const head = need<=0 ? `At your bid with ${left} left`
+             : need>=left ? `Need all ${left}`
+             : `Need <b>${need}</b> of <b>${left}</b>`;
+  if(G.table[1]===null){
+    if(!best) return [head+"."];
+    const m=beatsCount(best.key, unseen);
+    return [`${head} · ${best.label} survives <b>${pct(1-pAtLeastOne(u,h,m))}%</b> `
+      + `(${m} of ${u} unseen beat it).`];
   }
-  if(G.myVoids && G.myVoids.size)
-    out.push(`They have shown out of <b>${[...G.myVoids].map(s=>SUIT_WORDS[s]).join(", ")}</b>, `
-      + `so those cards of yours are safe to lead.`);
-  return out;
+  const canWin=legal.filter(c=>trickWinner(G.table[1],c,G.trump)===1).length;
+  const rule = need<=0 ? `duck ${CASE.duckWhenSafe}%`
+             : need>=left ? `take it ${CASE.winWhenNeeded}%`
+             : null;
+  return [`${head} · ${canWin} of ${legal.length} would win`
+    + (rule ? ` · best play is to ${rule} of the time` : "") + `.`];
 }
 
-function cardEV(legal){
+async function cardEV(legal){
   const unseen=unseenForMe(), oppSize=G.hands[1].length;
   if(oppSize<1 || unseen.length<oppSize) return {rows:[], note:"nothing to sample"};
   const rand=mulberry(posSeed());
   const dd=new DoubleDummy(G.trump, scorePayoff(G.bids[0],G.bids[1])), hm=maskOf(G.hands[0]);
   const tot=new Map(legal.map(c=>[c,0]));
-  const N=samplesFor(oppSize);
+  const N=samplesFor(oppSize), breathe=paced();
   for(let i=0;i<N;i++){
     const vals=dd.rootValues(hm, maskOf(consistentHand(rand,unseen,oppSize,G.myVoids)),
                              G.table[1], G.tricks[0], G.tricks[1]);
     for(const c of legal) if(vals.has(c)) tot.set(c, tot.get(c)+vals.get(c));
+    await breathe();
   }
-  const rows=legal.map(c=>({key:c, label:cardName(c), ev:tot.get(c)/N}));
+  /* Chance this card takes the trick. Following, that is settled — their card is already on
+     the table. Leading, it is the chance none of the cards that would beat it is in their
+     hand, which is an exact hypergeometric draw over the unseen cards, not a sample. */
+  const led=G.table[1];
+  const winChance = c => led!==null
+    ? (trickWinner(led, c, G.trump)===1 ? 1 : 0)
+    : 1 - pAtLeastOne(unseen.length, oppSize, beatsCount(c, unseen));
+
+  const rows=legal.map(c=>({key:c, label:cardName(c), ev:tot.get(c)/N, win:winChance(c)}));
   const voids=[...(G.myVoids||[])].map(s=>SUIT_WORDS[s]);
-  return {rows, note:`${N} deals · ${unseen.length} cards unseen`
-    + (voids.length?` · they are void in ${voids.join(", ")}`:"")};
+  return {rows, note:`${N} deals · ${unseen.length} unseen`
+    + (voids.length?` · void in ${voids.join(", ")}`:"")};
 }
 
-function showSolver(title, result, why){
+/* Numbers only. The prose belongs in the review after the trick, where it is a lesson rather
+   than a hint you have to read past while deciding. */
+function showSolver(title, result){
   const box=$("solver");
   if(!solverOn || !result.rows.length){ box.style.display="none"; return; }
-  result._why = why || null;
   box.style.display="block";
   const best=Math.max(...result.rows.map(r=>r.ev));
   const worst=Math.min(...result.rows.map(r=>r.ev));
@@ -1654,14 +1795,15 @@ function showSolver(title, result, why){
   const rows=result.rows.slice().sort((a,b)=>b.ev-a.ev).map(r=>{
     const top=r.ev>=best-1e-9;
     const w=Math.round((r.ev-worst)/span*100);
+    const win = r.win===undefined ? ""
+      : `<span class="sv-w">${Math.round(r.win*100)}%</span>`;
     return `<div class="sv-row${top?" best":""}">
       <span class="sv-k">${r.label}</span>
-      <span class="sv-bar"><i style="width:${w}%"></i></span>
+      <span class="sv-bar"><i style="width:${w}%"></i></span>${win}
       <span class="sv-v">${r.ev>=0?"+":""}${r.ev.toFixed(2)}</span></div>`;
   }).join("");
   $("svTitle").textContent=title;
-  $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`
-    + (why && why.length ? `<div class="sv-why">${why.map(t=>`<p>${t}</p>`).join("")}</div>` : "");
+  $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`;
 }
 const hideSolver = () => { $("solver").style.display="none"; };
 
@@ -1686,6 +1828,9 @@ function solving(title){
    average, and those are the ones worth reading. */
 let reviewOn = true;
 
+/* The explanation text is no longer shown in the UI — it is kept only as context for the
+   copy-out, where a reader who was not at the table needs it. */
+const plain = arr => (arr||[]).map(t=>t.replace(/<[^>]+>/g,"")).join(" ");
 function fileReview(entry){ if(G && G.review) G.review.push(entry); }
 
 function gradeRows(rows, chosen){
@@ -1702,27 +1847,131 @@ function reviewLine(g, label){
   if(g.tied)
     return `<div class="rv-row ok"><span class="rv-k">${label}</span>
       <span class="rv-v">${g.mine.label}</span>
-      <span class="rv-note">every option scored the same — nothing to get wrong here</span></div>`;
+      <span class="rv-note">all equal</span></div>`;
   const good = g.cost < 1e-9;
   return `<div class="rv-row ${good?"ok":"bad"}"><span class="rv-k">${label}</span>
     <span class="rv-v">${g.mine.label} <i>${g.mine.ev>=0?"+":""}${g.mine.ev.toFixed(2)}</i></span>
-    <span class="rv-note">${good
-      ? "best available"
-      : `best was <b>${g.best.label}</b> at ${g.best.ev>=0?"+":""}${g.best.ev.toFixed(2)}
-         — this cost <b>${g.cost.toFixed(2)}</b>`}</span></div>`;
+    <span class="rv-note">${good ? "best"
+      : `best <b>${g.best.label}</b> ${g.best.ev>=0?"+":""}${g.best.ev.toFixed(2)}
+         · cost <b>${g.cost.toFixed(2)}</b>`}</span></div>`;
 }
 
-function showTrickReview(trickNo, winner){
+/* One review per round, after the score is in. Per trick it interrupted every single hand and
+   most of what it had to say was "all equal" — 79% of card decisions are ties. Held to the end
+   of the round it becomes a readable list of the whole hand, and the few decisions that cost
+   anything sit next to each other where the pattern is visible. */
+/* Everything a fresh reader needs to judge the round without having played the game: the
+   rules in full, the handful of ideas that make the numbers mean something, then the round
+   itself as data. Written for pasting into a chat, so it is plain text and self-contained. */
+const RULES_BRIEF = `# Up the River (heads-up Wizard) — rules
+
+Two players. 24 cards: 10 J Q K A in four suits (20), plus 2 Wizards and 2 Jesters.
+Hand sizes run 1,2,...,8,8,...,2,1 — 16 rounds, 72 tricks. Each player deals each size once.
+After the deal one card is turned up to set trump. A Wizard turned up means the dealer names
+trump; a Jester means no trump. At the largest sizes some cards stay in the stock unseen.
+
+Bidding: the non-dealer bids first. THE HOOK: the dealer may not choose a bid that makes the
+two bids total the hand size. So the bids never sum to the tricks available, and at most one
+player can be exactly right in any round.
+
+Play: follow suit if you can. Wizards and Jesters are always legal regardless of suit.
+Trick winner, in this order of precedence:
+  - a Wizard LED wins outright (so with two Wizards out, the first Wizard played wins);
+  - otherwise a Wizard played second wins;
+  - a Jester played second always loses;
+  - a Jester led loses to anything except the other Jester;
+  - otherwise the highest trump, or failing that the highest card of the suit led.
+
+Scoring, per round: hit your bid exactly = 2 + tricks taken. Miss = -(|tricks - bid|).
+
+# Concepts that make the numbers mean something
+
+- Duel property. Because of the hook the two bids cannot both be right, so a round is close
+  to zero-sum: helping yourself and hurting them are usually the same move.
+- Reachable band. A hand does not take a fixed number of tricks; it takes as many as you play
+  for. Solve the deal twice — the most you can force against best defence, and the fewest you
+  can hold yourself to — and every bid between the two is makeable. Measured over 600 rounds
+  the band averages 0.9 tricks wide, and it contains the real outcome about 80% of the time,
+  where the single "tricks you can force" number matches only about half the time.
+- Among makeable bids the highest pays best, because a made bid scores 2 + tricks.
+- Duplicate specials. With two Wizards, a Wizard LED always wins but a Wizard FOLLOWED loses
+  to a Wizard lead. With two Jesters, a Jester FOLLOWED always loses but a Jester LED can be
+  answered by the other Jester. Holding one copy guarantees nothing; holding both does.
+- Most card decisions do not matter. Over 600 rounds, 79% of the points where more than one
+  card was legal had every option scoring identically, because the contract was already safe
+  or already dead. The other 21% were worth about 7.5 points each.
+
+The EV figures below are in round points, from a perfect-information solver averaged over
+sampled opponent hands consistent with everything visible at that moment.`;
+
+function roundReport(items){
+  const L=[], size=G.size;
+  L.push(RULES_BRIEF, "", `# The round just played`, "");
+  L.push(`Round ${G.idx+1} of ${G.ladder.length}, ${size} card${size>1?"s":""} each.`);
+  L.push(`Trump: ${G.trump<0?"none":SUIT_WORDS[G.trump]} (${cardName(G.trumpCard)} turned up).`);
+  L.push(`${G.dealer===0?"I dealt, so they bid first and the hook applied to me."
+                        :"They dealt, so I bid first and the hook applied to them."}`);
+  L.push(`My hand: ${(G.handDealt||[]).map(cardName).join(" ")}`);
+  L.push(`Bids — me ${G.bids[0]}, them ${G.bids[1]}. Result: I took ${G.tricks[0]}, they took ${G.tricks[1]}.`);
+  L.push("");
+  for(const it of items){
+    const g=it.grade;
+    L.push(`## ${it.label}`);
+    L.push(`  I chose: ${g.mine.label} (EV ${g.mine.ev>=0?"+":""}${g.mine.ev.toFixed(2)})`);
+    L.push(g.tied ? `  Every legal option scored the same.`
+                  : `  Best was: ${g.best.label} (EV ${g.best.ev>=0?"+":""}${g.best.ev.toFixed(2)})`);
+    L.push(`  All options: ${g.sorted.map(r=>
+      `${r.label} ${r.ev>=0?"+":""}${r.ev.toFixed(2)}`
+      + (r.win===undefined?"":` [wins trick ${Math.round(r.win*100)}%]`)).join(" | ")}`);
+    if(it.facts) L.push(`  Position: ${it.facts}`);
+    L.push("");
+  }
+  if((G.trickLog||[]).length){
+    L.push(`## How the tricks went`);
+    for(const t of G.trickLog)
+      L.push(`  Trick ${t.n}: ${t.iLed?"I led":"they led"} — mine ${cardName(t.mine)},`
+           + ` theirs ${cardName(t.theirs)} — ${t.won?"I took it":"they took it"}`);
+    L.push("");
+  }
+  L.push(`# What I want`, "",
+    `Analyse this round. For each decision where I did not pick the best option, explain`,
+    `concisely and mathematically why the best option was best: what the alternative lines`,
+    `were, which cards mattered, and how the numbers work out. Keep it brief and concrete —`,
+    `no restating the rules back to me. If a decision was genuinely close or a tie, say so`,
+    `rather than inventing a reason.`);
+  return L.join("\n");
+}
+
+/* file:// pages are not a secure context, so the async clipboard API is unavailable there.
+   The textarea fallback is what actually runs when the game is opened straight off disk. */
+function copyText(text, btn){
+  const done=ok=>{ btn.textContent = ok ? "Copied" : "Copy failed";
+                   setTimeout(()=>btn.textContent="Copy for Claude", 1600); };
+  if(navigator.clipboard && window.isSecureContext)
+    return navigator.clipboard.writeText(text).then(()=>done(true), ()=>done(false));
+  const ta=document.createElement("textarea");
+  ta.value=text; ta.style.cssText="position:fixed;top:-2000px;left:0";
+  document.body.appendChild(ta); ta.select();
+  let ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+  ta.remove(); done(ok);
+}
+
+function showRoundReview(){
   return new Promise(done=>{
-    if(!reviewOn || !G.review.length){ done(); return; }
-    const items=G.review.splice(0);
-    const body=items.map(it=>reviewLine(it.grade, it.label)).join("");
-    const why=items.filter(i=>i.why && i.why.length).slice(-1)[0];
-    const ov=overlay(`<h2 class="o">Trick ${trickNo+1} review</h2>
-      <div class="rv">${body}</div>
-      ${why ? `<div class="rv-why">${why.why.map(t=>`<p>${t}</p>`).join("")}</div>` : ""}
-      <button class="btn-gold o1 rv-go">Next</button>`);
+    const items=G.review.splice(0).filter(it=>it.grade);
+    if(!reviewOn || !items.length){ done(); return; }
+    const lost=items.reduce((s,it)=>s + (it.grade.tied?0:it.grade.cost), 0);
+    const ov=overlay(`<h2 class="o">Round ${G.idx+1} decisions</h2>
+      <p>${lost<1e-9
+        ? "You played the best option at every point that mattered."
+        : `Cost of the choices you missed: <b>${lost.toFixed(2)}</b> points.`}</p>
+      <div class="rv">${items.map(it=>reviewLine(it.grade, it.label)).join("")}</div>
+      <div class="rv-acts">
+        <button class="btn-grey o1 rv-copy">Copy for Claude</button>
+        <button class="btn-gold o1 rv-go">Next round</button>
+      </div>`);
     ov.classList.add("review");
+    ov.querySelector(".rv-copy").onclick=e=>copyText(roundReport(items), e.currentTarget);
     ov.querySelector(".rv-go").onclick=()=>{ ov.remove(); done(); };
   });
 }
@@ -1742,12 +1991,13 @@ function askCard(legal){
   return new Promise(res=>{
     pendingCard={legal,resolve:res}; render();
     if(solverOn) solving("Card EV");
-    setTimeout(()=>{
+    setTimeout(async ()=>{
       if(!pendingCard) return;                  // they played before the solve came back
-      const r = legal.length>1 ? cardEV(legal) : {rows:[],note:"only one legal card"};
+      const r = legal.length>1 ? await cardEV(legal) : {rows:[],note:"only one legal card"};
+      if(!pendingCard) return;                  // or during it, now that it yields
       r._why = explainCard(legal, r);
-      G._lastEV = r;                            // kept for the review after the trick
-      if(solverOn) showSolver("Card EV", r, r._why);
+      G._lastEV = r;                            // kept for the review at the end of the round
+      if(solverOn) showSolver("Card EV", r);
     },0);
   });
 }
@@ -1788,29 +2038,38 @@ function askBid(legal){
     if(solverOn) solving("Bid EV");
     /* The bid is solved even when the panel is hidden, so the review can grade it. */
     let bidRes=null;
-    setTimeout(()=>{
+    setTimeout(async ()=>{
       if(!ov.isConnected) return;               // they bid before the solve came back
-      bidRes = bidEV(legal);
-      if(solverOn) showSolver("Bid EV", bidRes, explainBid(bidRes));
+      const r = await bidEV(legal);
+      if(!ov.isConnected) return;               // or during it, now that it yields
+      bidRes = r;
+      if(solverOn) showSolver("Bid EV", bidRes);
     }, 0);
     ov.querySelectorAll(".bidbtn").forEach(btn=>{
       const b=+btn.dataset.b;
       if(legal.includes(b)) btn.onclick=()=>{
         if(bidRes) fileReview({ label:"Your bid", grade:gradeRows(bidRes.rows,b),
-                                why:explainBid(bidRes) });
+                                facts:plain(explainBid(bidRes)) });
         ov.remove(); hideSolver(); say(`You bid ${b}`); res(b);
       };
     });
   });
 }
+/* Suit initials happen to be distinct across the four — spades, hearts, diamonds, clubs — so
+   each suit answers to both its own letter and its position in the row. */
+const SUIT_KEY = ["s","h","d","c"];
+
 function askTrump(){
   return new Promise(res=>{
     const ov=overlay(`<h2 class="o">A Wizard flipped</h2>
       <p>You deal, so you name trump before either bid, and they see your choice.
       Naming your real strength tells them exactly where you are strong.</p>
       <div class="suitrow">${SUITS.map((s,i)=>
-        `<button class="suitbtn" style="color:${SUIT_INK[i]}" data-s="${i}">${s}</button>`
-        ).join("")}</div>`);
+        `<button class="suitbtn" style="color:${SUIT_INK[i]}" data-s="${i}">${s}
+           <i class="suitkey">${i+1}<em>${SUIT_KEY[i].toUpperCase()}</em></i></button>`
+        ).join("")}</div>
+      <div class="bidfoot o1">Press <b>1</b>–<b>4</b>, or the suit's letter.</div>`);
+    ov.classList.add("trump");
     ov.querySelectorAll(".suitbtn").forEach(b=>
       b.onclick=()=>{ ov.remove(); res(+b.dataset.s); });
   });
@@ -1938,6 +2197,13 @@ document.addEventListener("keydown", e=>{
   if(e.metaKey || e.ctrlKey || e.altKey) return;
   if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
 
+  const trumpOv=document.querySelector(".ov.trump");
+  if(trumpOv){
+    const k=e.key.toLowerCase();
+    const i = /^[1-4]$/.test(k) ? +k-1 : SUIT_KEY.indexOf(k);
+    if(i>=0){ e.preventDefault(); trumpOv.querySelector(`.suitbtn[data-s="${i}"]`).click(); }
+    return;
+  }
   const bidOv=document.querySelector(".ov.bid");
   if(bidOv){
     if(!/^\d$/.test(e.key)) return;
@@ -1972,10 +2238,11 @@ $("svClose").onclick=()=>{ solverOn=false; hideSolver(); $("svOpen").style.displ
 $("svOpen").onclick=()=>{
   solverOn=true; $("svOpen").style.display="none";
   if(pendingCard){
-    showSolver("Card EV", cardEV(pendingCard.legal));
-  }else{
-    if(document.querySelector(".ov") && G && G.bids && G.bids[0]===null)
-      showSolver("Bid EV", bidEV(legalBids(G.size, G.dealer===0, G.bids[1])));
+    const legal=pendingCard.legal;
+    cardEV(legal).then(r=>{ if(pendingCard) showSolver("Card EV", r); });
+  }else if(document.querySelector(".ov") && G && G.bids && G.bids[0]===null){
+    bidEV(legalBids(G.size, G.dealer===0, G.bids[1]))
+      .then(r=>{ if(document.querySelector(".ov")) showSolver("Bid EV", r); });
   }
 };
 

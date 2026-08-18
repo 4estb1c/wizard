@@ -3,8 +3,11 @@ from agents.base import Agent
 from agents.heuristic_bot import HeuristicBot
 from agents.pimc_bot import PIMCBot
 from agents.random_bot import RandomBot
+from agents.simple_bots import (ContractBot, CountBot, DuckBot, GrabBot, SpecialsBot)
 
-__all__ = ["Agent", "HeuristicBot", "PIMCBot", "RandomBot", "ROSTER", "build_roster"]
+__all__ = ["Agent", "HeuristicBot", "PIMCBot", "RandomBot",
+           "DuckBot", "GrabBot", "SpecialsBot", "CountBot", "ContractBot",
+           "ROSTER", "build_roster"]
 
 
 #: The ranked population. Each entry is ``(name, factory)``.
@@ -14,6 +17,13 @@ __all__ = ["Agent", "HeuristicBot", "PIMCBot", "RandomBot", "ROSTER", "build_ros
 #: the Nash mixture. It is a measuring instrument, not a competitor.
 ROSTER: dict[str, callable] = {
     "random":        lambda: RandomBot(name="random"),
+    # One-sentence rules, in rough order of how much they know. Neighbouring pairs differ by
+    # exactly one idea, so the gap between two rows is the price of that idea.
+    "duck":          lambda: DuckBot(name="duck"),
+    "grab":          lambda: GrabBot(name="grab"),
+    "specials":      lambda: SpecialsBot(name="specials"),
+    "count":         lambda: CountBot(name="count"),
+    "contract":      lambda: ContractBot(name="contract"),
     "heuristic":     lambda: HeuristicBot(name="heuristic"),
     "pimc-8":        lambda: PIMCBot(samples=8, name="pimc-8"),
     "pimc-24":       lambda: PIMCBot(samples=24, name="pimc-24"),

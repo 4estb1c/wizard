@@ -234,7 +234,12 @@ class DoubleDummy:
         same number, with no error and no sign that it happened.
         """
         self.nodes = 0
-        if len(self._tt) > 400_000:
+        # A tuple-keyed dict entry costs a few hundred bytes here, so this cap is a memory
+        # budget rather than a nicety: a round robin runs several PIMC agents inside each of
+        # several worker processes, and at 400k the pool ran the machine out of memory
+        # mid-tournament. 40k keeps a solver near ten megabytes while still carrying the
+        # table across the determinizations of one decision, which is where it pays.
+        if len(self._tt) > 40_000:
             self._tt.clear()
 
     def value(self, a_hand, b_hand, *, a_to_move: bool = True, lead: int | None = None,
