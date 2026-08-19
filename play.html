@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Up the River</title>
+<title>Wizard</title>
 <style>
 /* ============================================================ palette */
 :root{
@@ -218,28 +218,14 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 .card.dim{filter:brightness(.46) saturate(.35) contrast(.9)}
 
 /* ---- hotkey indicators ----
-   Four treatments, picked by the HOTKEY_STYLE constant in the script. Keys run left to right
-   across the fan, so the digit is a position and not a property of the card. They are only
-   drawn while a card is actually being asked for; during bidding the same digits mean bids.
-   k2 hangs below the card, so its card has to stop clipping. */
-.hotkey{position:absolute; z-index:6; font-weight:800; pointer-events:none}
-.card:has(> .hotkey.k2){overflow:visible}
-.hotkey.k1{top:5px; right:5px; width:17px; height:17px; border-radius:50%;
+   Keys run left to right across the fan, so the digit is a position and not a property of
+   the card. Drawn only while a card is actually being asked for; during bidding the same
+   digits mean bids. */
+.hotkey{position:absolute; z-index:6; font-weight:800; pointer-events:none;
+  top:5px; right:5px; width:17px; height:17px; border-radius:50%;
   background:rgba(10,16,13,.82); color:#f6c860; font-size:10.5px;
   display:grid; place-items:center; box-shadow:inset 0 0 0 1px rgba(246,200,96,.45)}
-.hotkey.k2{left:50%; bottom:-21px; transform:translateX(-50%); min-width:19px; height:18px;
-  padding:0 5px; border-radius:4px; background:#20282f; color:#dfe6f2; font-size:10.5px;
-  display:grid; place-items:center;
-  box-shadow:0 2px 0 #10161b, inset 0 1px 0 rgba(255,255,255,.16)}
-.hotkey.k3{left:0; right:0; bottom:0; height:16px; background:rgba(10,16,13,.8);
-  color:#f6c860; font-size:10px; letter-spacing:.08em; display:grid; place-items:center;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
-.hotkey.k4{inset:0; display:grid; place-items:center; font-size:calc(var(--cw) * .6);
-  color:rgba(20,28,24,.16)}
-.card.sp .hotkey.k4, .card.je .hotkey.k4{color:rgba(255,255,255,.2)}
-.card.dim .hotkey.k1, .card.dim .hotkey.k4{display:none}
-.card.dim .hotkey.k2{opacity:.25}
-.card.dim .hotkey.k3{background:rgba(10,16,13,.5); color:#7b8590}
+.card.dim .hotkey{display:none}
 .card.sp{background:var(--wizface);
   box-shadow:0 6px 16px rgba(0,0,0,.5), 0 1px 0 rgba(0,0,0,.45),
     inset 0 0 0 2px #d4a53a, inset 0 0 0 4px #171c38}
@@ -313,7 +299,94 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
    One card, face down, centred on the felt. The setup is present from the start but folded
    away to zero height so revealing it is a transition rather than a second dialog. */
 .ov.start{background:rgba(6,14,11,.62)}
+/* Opening screen: one card on an empty felt. The sidebar is a sibling of the felt rather
+   than a child, so the overlay alone never hid it and the trump badge, deck pile and both
+   hand tags all showed through behind the title card. */
+body.preboot .side, body.preboot .trumpbadge, body.preboot .trumplabel,
+body.preboot .trumpcard, body.preboot .deckpile, body.preboot .log,
+body.preboot .zone, body.preboot .solver, body.preboot .sv-open{display:none}
+body.preboot #app{grid-template-columns:1fr}
+body.preboot .ov.start{background:transparent}
 .startwrap{display:flex; flex-direction:column; align-items:center; gap:16px}
+
+/* ==========================================================================
+   TITLE CARD — invite, idle and power
+
+   Three layers, because one element cannot hold two independent transforms and the card
+   itself already owns the flip and the click bounce:
+
+       .startaura   the emanation, behind, never transformed by anything else
+         .startfloat  the idle, and nothing else
+           .startcard the flip and the hover, untouched
+
+   Sheen is the exception that is safe on the card itself: it animates a pseudo-element of
+   its own overlay rather than the card, so the hover transition still has something to
+   interpolate.
+   ========================================================================== */
+.startaura{position:relative; display:grid; place-items:center}
+.startfloat{position:relative; will-change:transform}
+
+/* Face down: a light sweeps the back on a long cycle. Nothing moves, so it reads as a
+   highlight catching the card rather than as the card asking to be pressed. */
+.startcard .gloss{position:absolute; inset:0; border-radius:10px; overflow:hidden;
+  pointer-events:none; z-index:2}
+.startcard.iv-sheen .gloss::before{
+  content:""; position:absolute; top:-60%; left:0; width:80%; height:220%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  will-change:transform; animation:ivSheen 4.6s ease-in-out infinite;
+}
+@keyframes ivSheen{
+  0%,62%{transform:translateX(-180%) rotate(18deg)}
+  100%{transform:translateX(320%) rotate(18deg)}
+}
+
+/* The label opens and closes its tracking. letter-spacing is a layout property, which would
+   normally be the wrong thing to animate — but it is one short line of text and the spacing
+   IS the effect, so there is nothing cheaper that does the same job. */
+@keyframes hnTrack{0%,100%{letter-spacing:.08em; opacity:.6} 50%{letter-spacing:.2em; opacity:.95}}
+.starthint.hn-track{animation:hnTrack 3.4s ease-in-out infinite}
+
+/* Face up: bob with a rock either side of vertical. */
+@keyframes idPend{
+  0%,100%{transform:translateY(0) rotate(-1.8deg)}
+  50%{transform:translateY(-9px) rotate(1.8deg)}
+}
+.id-pendulum{animation:idPend 4.6s ease-in-out infinite}
+
+/* ---------------------------------------------------------------- embers
+
+   Sparks lift from behind the card and drift as they rise.
+
+   Tuned to stay on the compositor. Each spark animates transform and opacity only, and is
+   promoted up front with will-change so the browser rasterises it once and then only moves
+   the texture. Two things the first version got wrong and this one does not:
+
+     - the glow was a box-shadow, which is a paint operation on a blurred rectangle. It is a
+       radial-gradient background now, rasterised once into the layer.
+     - the end position was calc(var(--x) + var(--dx)) inside the keyframe, so the custom
+       properties had to be resolved on every frame. Both endpoints are plain values written
+       by the builder instead, and the keyframe touches no variables at all.
+*/
+.pw-embers .ember{
+  position:absolute; left:50%; bottom:14%; width:9px; height:9px; margin:-3px;
+  border-radius:50%; pointer-events:none; will-change:transform, opacity;
+  background:radial-gradient(circle, #fff6d8 0 18%, #f6d98a 34%, rgba(246,200,96,.42) 58%,
+                             transparent 72%);
+  animation:pwRise var(--dur) linear infinite;
+}
+@keyframes pwRise{
+  0%{opacity:0; transform:translate3d(var(--x0),0,0) scale(.5)}
+  14%{opacity:1}
+  70%{opacity:.9}
+  100%{opacity:0; transform:translate3d(var(--x1),-230px,0) scale(.25)}
+}
+
+.starthint{contain:layout}      /* tracking is a layout property; keep the reflow local */
+@media (prefers-reduced-motion:reduce){
+  .startcard.iv-sheen .gloss::before, .starthint.hn-track, .id-pendulum,
+  .pw-embers .ember{animation:none}
+}
+
 .startcard{position:relative; width:176px; height:250px; cursor:pointer; perspective:1000px;
   filter:drop-shadow(0 16px 34px rgba(0,0,0,.55));
   transition:transform .16s ease, filter .16s ease}
@@ -412,7 +485,6 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 /* Both keys that work, stacked in the corner: the position, and the suit's own letter. */
 .suitkey{position:absolute; top:4px; right:6px; font-style:normal; line-height:1.05;
   text-align:right; font-size:10px; font-weight:800; color:#8a929c}
-.suitkey em{display:block; font-style:normal; font-size:9px; opacity:.75}
 .tbl{width:100%; font-size:14px; margin:12px 0 14px; border-collapse:separate; border-spacing:0 5px}
 .tbl th{font-size:9px; color:var(--dim); padding:2px 8px; text-transform:uppercase;
   letter-spacing:.14em}
@@ -564,7 +636,7 @@ button:active{transform:translateY(1px); filter:brightness(.95)}
 }
 </style>
 </head>
-<body>
+<body class="preboot">
 <div id="app">
   <aside class="side">
     <div class="panel blind">
@@ -860,7 +932,7 @@ function sampleFrom(pool, k){
   for(let i=0;i<k;i++){ const j=i+rnd(a.length-i); const t=a[i]; a[i]=a[j]; a[j]=t; }
   return a.slice(0,k);
 }
-const DIFFICULTY={ easy:0, normal:14, hard:34 };
+const DIFFICULTY={ easy:0, medium:14, hard:34 };
 
 function leadWinProb(card, unseen, trump){
   if(!unseen.length) return 0;
@@ -949,14 +1021,26 @@ const frameSVG = c => `
 /* One treatment for all five ranks. "10" is two glyphs, so it drops a size to keep the
    same optical width as a single letter; the Ace gives its suit more weight. Nothing else
    varies, which is what makes the ranks read as one set. */
+/* Advance widths of every glyph as Georgia actually renders it, in viewBox units.
+   text-anchor="middle" has to measure the string before it can centre it, and until the font
+   is ready that measurement is wrong — so the rank drew from the centre rightwards and the
+   card clipped it, correcting a moment later when the font landed. Pinning textLength gives
+   the browser the advance up front, so the very first paint is centred whatever font is in
+   use. The numbers are Georgia's own, so nothing about the drawing changes. */
+const RANK_W = { "10":59.72, "J":38.19, "Q":52.56, "K":52.38, "A":48.63 };
+const SUIT_W = { "♠":10.19, "♥":11.38, "♦":9.78, "♣":12.56 };
+
 function rankSVG(label, suit, c){
   const wide = label.length > 1;
+  const sw = (SUIT_W[suit] || 11) * (label === "A" ? 26/19 : 1);
   return `<svg viewBox="0 0 100 140">${frameSVG(c)}
     <text x="50" y="${wide?81:84}" text-anchor="middle" fill="${c}"
-          font-family="Georgia,'Times New Roman',serif" font-size="${wide?50:64}">${label}</text>
+          font-family="Georgia,'Times New Roman',serif" font-size="${wide?50:64}"
+          textLength="${RANK_W[label] || 48}" lengthAdjust="spacingAndGlyphs">${label}</text>
     <line x1="31" y1="95" x2="69" y2="95" stroke="${c}" stroke-width=".9" opacity=".38"/>
     <text x="50" y="117" text-anchor="middle" fill="${c}"
-          font-family="Georgia,serif" font-size="${label==="A"?26:19}">${suit}</text>
+          font-family="Georgia,serif" font-size="${label==="A"?26:19}"
+          textLength="${sw.toFixed(2)}" lengthAdjust="spacingAndGlyphs">${suit}</text>
   </svg>`;
 }
 
@@ -995,7 +1079,8 @@ const wizardSVG = () => { const u = "wz" + (++svgUid); return `
   <circle cx="37" cy="46" r="1.6" fill="${GOLD_INK}" opacity=".7"/>
   <circle cx="66" cy="70" r="1.6" fill="${GOLD_INK}" opacity=".7"/>
   <text x="50" y="119" text-anchor="middle" fill="${GOLD_INK}" font-family="Georgia,serif"
-        font-size="11" letter-spacing="2.5" opacity=".85">WIZARD</text>
+        font-size="11" letter-spacing="2.5" opacity=".85"
+        textLength="66.17" lengthAdjust="spacingAndGlyphs">WIZARD</text>
 </svg>`; };
 
 /* Jester — same construction language as the Wizard: one frame rect, one stroke weight,
@@ -1082,7 +1167,8 @@ const jesterSVG = () => { const u="js"+(++svgUid); return `
   <circle cx="${jesNX(86)}" cy="74" r="3.4" fill="${JES_INK}"/>
   <circle cx="${jesNX(68)}" cy="28" r="4"   fill="${JES_INK}"/>
   <text x="50" y="119" text-anchor="middle" fill="${JES_INK}" font-family="Georgia,serif"
-        font-size="11" letter-spacing="2.5" opacity=".85">JESTER</text>
+        font-size="11" letter-spacing="2.5" opacity=".85"
+        textLength="60.86" lengthAdjust="spacingAndGlyphs">JESTER</text>
 </svg>`; };
 
 /* ==========================================================================
@@ -1090,11 +1176,9 @@ const jesterSVG = () => { const u="js"+(++svgUid); return `
    ========================================================================== */
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-let G=null, pendingCard=null, difficulty="normal", peak=PEAK;
+let G=null, pendingCard=null, difficulty="medium";
 
 /* Which of the four hotkey treatments to draw: k1 corner pip, k2 keycap below the card,
-   k3 bar along the foot, k4 ghosted watermark. See hotkeys.html for all four side by side. */
-const HOTKEY_STYLE = "k1";
 
 /* runRound is a long async chain that awaits human input. Starting a second one while the
    first is parked on a promise leaves two chains mutating the same G — which is exactly the
@@ -1107,7 +1191,7 @@ function newGame(){
   GEN++;
   pendingCard = null;                                   // drop any parked click handler
   document.querySelectorAll(".ov").forEach(o=>o.remove());
-  G={ gen:GEN, ladder:ladderFor(peak), idx:0, totals:[0,0], logLines:[] };
+  G={ gen:GEN, ladder:ladderFor(PEAK), idx:0, totals:[0,0], logLines:[] };
   $("log").innerHTML="";
   runRound();
 }
@@ -1139,7 +1223,9 @@ async function runRound(){
   G.trickNo=0; G.leader=lead; G.thinking=false;
   G.freshDeal=true; G._dealSeq=(G._dealSeq||0)+1;   // animate this deal once, then stop
   G._from=[null,null];                          // where each side's card started this trick
-  G.review=[]; G._lastEV=null;                  // decisions awaiting the end-of-round review
+  // Decisions awaiting the end-of-round review. reviewPending holds the solves still in
+  // flight, so the summary can wait for them instead of losing whatever had not finished.
+  G.review=[]; G.reviewPending=[]; G._reviewSeq=0; G._evPromise=null;
   G.handDealt=G.hands[0].slice();               // hands are consumed in play; keep the deal
   G.trickLog=[];
   G.logLines=[]; $("log").innerHTML="";         // the log is a record of this round only
@@ -1191,10 +1277,16 @@ async function runRound(){
       if(seat===0){
         card=await askCard(legal);
         if(stale(gen)) return;
-        if(legal.length>1 && G._lastEV)
-          fileReview({ label:`Trick ${t+1}`, grade:gradeRows(G._lastEV.rows, card),
-                       facts:plain(G._lastEV._why) });
-        G._lastEV=null;
+        if(legal.length>1 && G._evPromise){
+          // Filed when the solve lands rather than now, so playing quickly never costs you
+          // the analysis, and the game is never made to wait for it either.
+          const p=G._evPromise, label=`Trick ${t+1}`, played=card, g=gen, seq=G._reviewSeq++;
+          G.reviewPending.push(p.then(r=>{
+            if(!stale(g) && r && r.rows && r.rows.length)
+              fileReview({ seq, label, grade:gradeRows(r.rows, played), facts:plain(r._why) });
+          }).catch(()=>{}));
+        }
+        G._evPromise=null;
       }else{
         G.thinking=true; render(); await sleep(300);
         if(stale(gen)) return;
@@ -1379,7 +1471,7 @@ function render(){
     // Only while a card is being asked for: during bidding the digits mean bids.
     if(legal && i<9){
       const k=document.createElement("div");
-      k.className="hotkey "+HOTKEY_STYLE;
+      k.className="hotkey";
       k.textContent=i+1;
       el.appendChild(k);
     }
@@ -1863,7 +1955,7 @@ function reviewLine(g, label){
 /* Everything a fresh reader needs to judge the round without having played the game: the
    rules in full, the handful of ideas that make the numbers mean something, then the round
    itself as data. Written for pasting into a chat, so it is plain text and self-contained. */
-const RULES_BRIEF = `# Up the River (heads-up Wizard) — rules
+const RULES_BRIEF = `# Wizard (heads-up) — rules
 
 Two players. 24 cards: 10 J Q K A in four suits (20), plus 2 Wizards and 2 Jesters.
 Hand sizes run 1,2,...,8,8,...,2,1 — 16 rounds, 72 tricks. Each player deals each size once.
@@ -1956,9 +2048,15 @@ function copyText(text, btn){
   ta.remove(); done(ok);
 }
 
-function showRoundReview(){
+async function showRoundReview(){
+  // Wait for any solve still in flight before deciding the summary is empty.
+  if(G && G.reviewPending.length){
+    await Promise.all(G.reviewPending);
+    G.reviewPending.length=0;
+  }
   return new Promise(done=>{
-    const items=G.review.splice(0).filter(it=>it.grade);
+    const items=G.review.splice(0).filter(it=>it.grade)
+                        .sort((a,b)=>(a.seq||0)-(b.seq||0));
     if(!reviewOn || !items.length){ done(); return; }
     const lost=items.reduce((s,it)=>s + (it.grade.tied?0:it.grade.cost), 0);
     const ov=overlay(`<h2 class="o">Round ${G.idx+1} decisions</h2>
@@ -1991,14 +2089,17 @@ function askCard(legal){
   return new Promise(res=>{
     pendingCard={legal,resolve:res}; render();
     if(solverOn) solving("Card EV");
-    setTimeout(async ()=>{
-      if(!pendingCard) return;                  // they played before the solve came back
+    /* The solve runs to completion whether or not anyone is still looking at it. Bailing out
+       once pendingCard had cleared meant that playing faster than the solver deleted that
+       decision from the round review outright — which is why quick tricks, and the last one
+       most of all, kept going missing from the summary. Only the panel is conditional now. */
+    G._evPromise = (async ()=>{
+      await new Promise(go=>setTimeout(go,0));  // let render() paint before the solve blocks
       const r = legal.length>1 ? await cardEV(legal) : {rows:[],note:"only one legal card"};
-      if(!pendingCard) return;                  // or during it, now that it yields
       r._why = explainCard(legal, r);
-      G._lastEV = r;                            // kept for the review at the end of the round
-      if(solverOn) showSolver("Card EV", r);
-    },0);
+      if(pendingCard && pendingCard.legal===legal && solverOn) showSolver("Card EV", r);
+      return r;
+    })();
   });
 }
 /* The bid prompt is deliberately not a modal. It sits in the empty middle of the table so
@@ -2037,28 +2138,26 @@ function askBid(legal){
     ov.classList.add("bid");
     if(solverOn) solving("Bid EV");
     /* The bid is solved even when the panel is hidden, so the review can grade it. */
-    let bidRes=null;
-    setTimeout(async ()=>{
-      if(!ov.isConnected) return;               // they bid before the solve came back
+    const bidPromise = (async ()=>{
+      await new Promise(go=>setTimeout(go,0));
       const r = await bidEV(legal);
-      if(!ov.isConnected) return;               // or during it, now that it yields
-      bidRes = r;
-      if(solverOn) showSolver("Bid EV", bidRes);
-    }, 0);
+      if(ov.isConnected && solverOn) showSolver("Bid EV", r);
+      return r;
+    })();
     ov.querySelectorAll(".bidbtn").forEach(btn=>{
       const b=+btn.dataset.b;
       if(legal.includes(b)) btn.onclick=()=>{
-        if(bidRes) fileReview({ label:"Your bid", grade:gradeRows(bidRes.rows,b),
-                                facts:plain(explainBid(bidRes)) });
+        const seq=G._reviewSeq++;
+        G.reviewPending.push(bidPromise.then(r=>{
+          if(r && r.rows && r.rows.length)
+            fileReview({ seq, label:"Your bid", grade:gradeRows(r.rows,b),
+                         facts:plain(explainBid(r)) });
+        }).catch(()=>{}));
         ov.remove(); hideSolver(); say(`You bid ${b}`); res(b);
       };
     });
   });
 }
-/* Suit initials happen to be distinct across the four — spades, hearts, diamonds, clubs — so
-   each suit answers to both its own letter and its position in the row. */
-const SUIT_KEY = ["s","h","d","c"];
-
 function askTrump(){
   return new Promise(res=>{
     const ov=overlay(`<h2 class="o">A Wizard flipped</h2>
@@ -2066,9 +2165,9 @@ function askTrump(){
       Naming your real strength tells them exactly where you are strong.</p>
       <div class="suitrow">${SUITS.map((s,i)=>
         `<button class="suitbtn" style="color:${SUIT_INK[i]}" data-s="${i}">${s}
-           <i class="suitkey">${i+1}<em>${SUIT_KEY[i].toUpperCase()}</em></i></button>`
+           <i class="suitkey">${i+1}</i></button>`
         ).join("")}</div>
-      <div class="bidfoot o1">Press <b>1</b>–<b>4</b>, or the suit's letter.</div>`);
+      <div class="bidfoot o1">Press <b>1</b>–<b>4</b>.</div>`);
     ov.classList.add("trump");
     ov.querySelectorAll(".suitbtn").forEach(b=>
       b.onclick=()=>{ ov.remove(); res(+b.dataset.s); });
@@ -2101,10 +2200,10 @@ function showGameOver(){
     <button class="btn-gold o1" style="padding:12px 28px" onclick="newGame()">Play again</button>`);
 }
 function showRules(){
-  const ov=overlay(`<h2 class="o">Up the River</h2>
+  const ov=overlay(`<h2 class="o">Wizard</h2>
     <div class="rules">
       <h3>Deck</h3>24 cards: <code>10 J Q K A</code> in four suits, plus <b>2 Wizards</b> and <b>2 Jesters</b>.
-      <h3>Ladder</h3>Hand sizes 1,2,…,${peak},${peak},…,2,1. The peak is played twice so each player
+      <h3>Ladder</h3>Hand sizes 1,2,…,${PEAK},${PEAK},…,2,1. The peak is played twice so each player
       deals every size exactly once.
       <h3>Bidding</h3>Non-dealer bids first. <b>The dealer may not make the two bids total the hand
       size.</b> Tricks always sum to the hand size and bids never do, so <b>at most one player can
@@ -2134,29 +2233,46 @@ function showRules(){
 /* The title screen is one card face down on the felt. Clicking it turns it over, and the
    Wizard it turns into is the same drawing the deck uses — the game introduces itself with
    its own art rather than with a dialog. The setup only appears once the turn has finished. */
+
+/* The sparks behind the title card. Both translate endpoints are written here as plain
+   values so the keyframe resolves no custom properties while it runs. */
+function spawnEmbers(aura){
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<14;i++){
+    const s=document.createElement("span");
+    const x=rnd(-75,75), dur=rnd(3.4,6);
+    s.className="ember";
+    s.style.setProperty("--x0", x.toFixed(0)+"px");
+    s.style.setProperty("--x1", (x+rnd(-23,23)).toFixed(0)+"px");
+    s.style.setProperty("--dur", dur.toFixed(2)+"s");
+    s.style.animationDelay=(-rnd(0,dur)).toFixed(2)+"s";
+    frag.appendChild(s);
+  }
+  aura.appendChild(frag);                       // one insertion, one layout
+}
+
 function startScreen(){
   const ov=document.createElement("div");
   ov.className="ov start";
   ov.innerHTML=`
     <div class="startwrap">
-      <div class="startcard" id="startCard">
-        <div class="fl"><div class="fs f sp">${wizardSVG()}</div><div class="fs b"></div></div>
-      </div>
-      <div class="starthint o" id="startHint">Up the River — tap the card</div>
-      <div class="startsetup" id="startSetup">
-        <div class="cap o1">Game length</div>
-        <div class="bidrow" id="lenRow">
-          <button class="bidbtn btn-blue o" data-p="4">Quick · 8 rounds</button>
-          <button class="bidbtn btn-blue o" data-p="8">Full · 16 rounds</button>
+      <div class="startaura" id="startAura">
+        <div class="startfloat" id="startFloat">
+          <div class="startcard iv-sheen" id="startCard">
+            <div class="fl"><div class="fs f sp">${wizardSVG()}</div><div class="fs b"></div></div>
+            <div class="gloss"></div>
+          </div>
         </div>
-        <div class="cap o1" style="margin-top:13px">Opponent</div>
+      </div>
+      <div class="starthint o hn-track" id="startHint">Tap the card</div>
+      <div class="startsetup" id="startSetup">
+        <div class="cap o1">Opponent</div>
         <div class="bidrow" id="difRow">
           <button class="bidbtn" style="background:#2f8f5f" data-d="easy">Easy</button>
-          <button class="bidbtn btn-blue" data-d="normal">Normal</button>
-          <button class="bidbtn btn-red" data-d="hard">Hard</button>
+          <button class="bidbtn btn-blue" data-d="medium">Medium</button>
+          <button class="bidbtn btn-red" data-d="hard">GTO</button>
         </div>
-        <p class="startnote">Easy plays on hand evaluation alone. Normal and Hard guess your
-        hand many times over and solve each guess exactly. Hard just guesses more.</p>
       </div>
     </div>`;
   $("felt").appendChild(ov);
@@ -2173,16 +2289,24 @@ function startScreen(){
                   {transform:"translateY(-12px) scale(1.07)", offset:.5},
                   {transform:"translateY(0px) scale(1)"}],
       {duration:620, easing:"ease-in-out"});
-    $("startHint").textContent="Choose your game";
-    setTimeout(()=>ov.classList.add("ready"), 430);
+    card.classList.remove("iv-sheen");
+    const hint=$("startHint");
+    hint.classList.remove("hn-track");
+    hint.textContent="Choose your opponent";
+    // The card only starts breathing and emanating once it is face up.
+    setTimeout(()=>{
+      $("startFloat").classList.add("id-pendulum");
+      const aura=$("startAura");
+      aura.classList.add("pw-embers");
+      spawnEmbers(aura);
+      ov.classList.add("ready");
+    }, 430);
   };
-  ov.querySelectorAll("#lenRow button").forEach(b=>b.onclick=()=>{
-    peak=+b.dataset.p;
-    ov.querySelectorAll("#lenRow button").forEach(x=>x.style.filter="brightness(.5)");
-    b.style.filter="brightness(1)";
-  });
   ov.querySelectorAll("#difRow button").forEach(b=>b.onclick=()=>{
-    difficulty=b.dataset.d; ov.remove(); newGame();
+    difficulty=b.dataset.d;
+    ov.remove();
+    document.body.classList.remove("preboot");   // the table appears only once play starts
+    newGame();
   });
 }
 /* ==========================================================================
@@ -2199,15 +2323,16 @@ document.addEventListener("keydown", e=>{
 
   const trumpOv=document.querySelector(".ov.trump");
   if(trumpOv){
-    const k=e.key.toLowerCase();
-    const i = /^[1-4]$/.test(k) ? +k-1 : SUIT_KEY.indexOf(k);
-    if(i>=0){ e.preventDefault(); trumpOv.querySelector(`.suitbtn[data-s="${i}"]`).click(); }
+    if(!/^[1-4]$/.test(e.key)) return;
+    e.preventDefault();
+    trumpOv.querySelector(`.suitbtn[data-s="${+e.key - 1}"]`).click();
     return;
   }
   const bidOv=document.querySelector(".ov.bid");
   if(bidOv){
-    if(!/^\d$/.test(e.key)) return;
-    const btn=bidOv.querySelector(`.bidbtn.btn-blue[data-b="${e.key}"]`);
+    const key = e.key === "`" ? "0" : e.key;
+    if(!/^\d$/.test(key)) return;
+    const btn=bidOv.querySelector(`.bidbtn.btn-blue[data-b="${key}"]`);
     if(btn){ e.preventDefault(); btn.click(); }
     return;
   }

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Wizard · Scorepad</title>
+<!--
+  A scorepad for playing Wizard with real cards. The phone lies face up between two
+  players sitting opposite each other, so the screen is split in half and the far player's
+  half is rotated 180deg: every prompt, every button and every number reads right way up from
+  the side of the table it belongs to. Nothing here deals or knows any cards. It knows the
+  ladder, the dealer, the hook, and the scoring, which is exactly the bookkeeping that is
+  annoying to do on paper.
+
+  Deliberate choices worth knowing about:
+    - Trick counts are entered by BOTH players rather than one, and the entry is rejected
+      unless the two add up to the hand size. That double entry is the only error check a
+      scorepad can offer, so it is not skipped for speed.
+    - Every state change pushes a snapshot, so Undo is exact and can walk all the way back to
+      the first bid rather than only reverting the last round.
+    - State is written to localStorage on every change, because a phone left face up on a
+      table gets locked, nudged and reloaded.
+-->
+<style>
+:root{
+  --felt-1:#4b8f70; --felt-2:#357a5c; --felt-3:#2a6350;
+  --panel:#39404b; --panel-2:#454d5a; --panel-dark:#22262e; --edge:#12151b;
+  --gold:#e5a23c; --gold-hi:#f6c860; --gold-lo:#9d6516;
+  --blue:#2b9bf0; --blue-hi:#6dc0ff; --blue-lo:#12507f;
+  --red:#ef5a4c; --red-lo:#8d2820;
+  --ink:#fdfbf3; --dim:#9aa4b2;
+  --p0:var(--gold); --p0-hi:var(--gold-hi); --p0-lo:var(--gold-lo);
+  --p1:var(--blue); --p1-hi:var(--blue-hi); --p1-lo:var(--blue-lo);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{height:100%; margin:0; overflow:hidden; overscroll-behavior:none}
+body{
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 50%, var(--felt-1) 0%, var(--felt-2) 55%, var(--felt-3) 100%),
+    var(--felt-2);
+  color:var(--ink); user-select:none; touch-action:manipulation;
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif; font-weight:800;
+}
+button{font:inherit; color:inherit; border:0; background:none; touch-action:manipulation}
+
+/* --- frame -------------------------------------------------------------- */
+.app{height:100vh; height:100dvh; display:grid; grid-template-rows:1fr auto 1fr}
+.seat{
+  display:flex; flex-direction:column; min-height:0; gap:6px;
+  padding:max(8px, env(safe-area-inset-top)) 10px 8px;
+}
+/* Seat 1 sits opposite, so its whole panel is turned to face them. */
+.seat.flip{transform:rotate(180deg); padding:8px 10px max(8px, env(safe-area-inset-bottom))}
+.seat.idle{opacity:.42}
+
+.head{display:flex; align-items:baseline; gap:8px; font-size:13px; letter-spacing:.02em}
+.who{font-size:16px; font-weight:900}
+.seat0 .who{color:var(--gold-hi)}  .seat1 .who{color:var(--blue-hi)}
+.deals{
+  font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase;
+  padding:2px 7px; border-radius:99px; background:rgba(0,0,0,.3); color:var(--dim);
+}
+.deals.on{background:var(--ink); color:var(--edge)}
+.right{margin-left:auto; display:flex; align-items:baseline; gap:6px}
+.delta{font-size:12px; font-weight:900; font-variant-numeric:tabular-nums}
+.delta.up{color:var(--gold-hi)} .delta.down{color:var(--red)}
+.tot{font-size:20px; font-weight:900; font-variant-numeric:tabular-nums; min-width:2.2em; text-align:right}
+.sub{font-size:12px; color:rgba(253,251,243,.72); font-weight:700; min-height:15px}
+
+.prompt{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; min-height:0;
+}
+.big{font-size:clamp(46px,16vh,104px); line-height:.92; font-weight:900; font-variant-numeric:tabular-nums}
+.big.made{color:var(--gold-hi)} .big.missed{color:var(--red)}
+.cap{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim)}
+
+/* --- pads --------------------------------------------------------------- */
+.pad{display:grid; gap:6px; grid-auto-rows:1fr; flex:1; min-height:0}
+.key{
+  border-radius:12px; font-size:clamp(20px,4.6vh,30px); font-weight:900;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  box-shadow:0 3px 0 var(--edge), inset 0 1px 0 rgba(255,255,255,.09);
+  display:grid; place-items:center; min-height:38px; transition:transform .06s, filter .06s;
+}
+.key:active{transform:translateY(3px); box-shadow:0 0 0 var(--edge); filter:brightness(1.15)}
+.seat0 .key.on{background:linear-gradient(180deg,var(--gold-hi),var(--gold)); color:var(--edge); box-shadow:0 3px 0 var(--gold-lo)}
+.seat1 .key.on{background:linear-gradient(180deg,var(--blue-hi),var(--blue)); color:var(--edge); box-shadow:0 3px 0 var(--blue-lo)}
+.key.no{opacity:.3; text-decoration:line-through; box-shadow:0 3px 0 var(--edge)}
+.key.no:active{transform:none; filter:none}
+.key.wide{grid-column:1/-1; font-size:17px; letter-spacing:.04em}
+
+.warn{
+  background:var(--red-lo); color:var(--ink); border-radius:9px; padding:5px 9px;
+  font-size:12px; text-align:center; font-weight:800;
+}
+
+/* --- centre bar --------------------------------------------------------- */
+.bar{
+  display:flex; align-items:center; gap:8px; padding:5px 10px;
+  background:rgba(0,0,0,.34); border-top:1px solid rgba(0,0,0,.35); border-bottom:1px solid rgba(0,0,0,.35);
+}
+.bar button{
+  font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase;
+  padding:6px 10px; border-radius:8px; background:rgba(255,255,255,.09); color:var(--dim);
+}
+.bar button:active{background:rgba(255,255,255,.2)}
+.bar button[disabled]{opacity:.3}
+.round{
+  flex:1; text-align:center; font-size:13px; font-weight:900; letter-spacing:.03em;
+  font-variant-numeric:tabular-nums; padding:6px 4px; border-radius:8px;
+}
+.round b{color:var(--gold-hi)}
+
+/* --- scorecard ---------------------------------------------------------- */
+.sheet{
+  position:fixed; inset:0; z-index:20; background:rgba(8,16,13,.97);
+  display:flex; flex-direction:column; padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));
+  gap:8px; overflow:auto; overscroll-behavior:contain;
+}
+.sheet.flip .sheetbody{transform:rotate(180deg)}
+.sheet h1{font-size:22px; margin:0; text-align:center; font-weight:900}
+.sheet h1 .win0{color:var(--gold-hi)} .sheet h1 .win1{color:var(--blue-hi)}
+.sheetbody{flex:1}
+table{border-collapse:collapse; width:100%; font-size:11px; font-variant-numeric:tabular-nums}
+th,td{padding:3px 2px; text-align:center; border-bottom:1px solid rgba(255,255,255,.08)}
+thead th{font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); font-weight:900}
+.g0{color:var(--gold-hi)} .g1{color:var(--blue-hi)}
+td.hit{color:var(--gold-hi)} td.miss{color:var(--red)}
+td.tt{font-weight:900}
+/* Dealer dot against that player's bid: columns are R, Cards, then three each. */
+tr.d0 td:nth-child(3)::after,tr.d1 td:nth-child(6)::after{content:"·D"; opacity:.5; font-size:9px}
+.note{font-size:10px; line-height:1.45; color:var(--dim); font-weight:700; padding:8px 2px 0}
+.sheetbtns{display:flex; gap:8px}
+.sheetbtns button{
+  flex:1; padding:12px; border-radius:10px; font-size:13px; font-weight:900;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel)); box-shadow:0 3px 0 var(--edge);
+}
+.hidden{display:none !important}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="seat seat1 flip" id="s1"></div>
+  <div class="bar">
+    <button id="undo">Undo</button>
+    <button class="round" id="round"></button>
+    <button id="reset">New</button>
+  </div>
+  <div class="seat seat0" id="s0"></div>
+</div>
+<div class="sheet hidden" id="sheet"></div>
+
+<script>
+"use strict";
+
+/* The ladder: up to eight and back down, the peak played twice. Because the deal alternates
+   every round and there are sixteen of them, each player deals every hand size exactly once,
+   which is the whole reason the peak is doubled. */
+const LADDER = [1,2,3,4,5,6,7,8,8,7,6,5,4,3,2,1];
+const KEY = "utr-scorepad-v1";
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (txt != null) n.textContent = txt;
+  return n;
+};
+
+/* Points for one round: 2 + tricks when the bid is hit exactly, else minus the miss. */
+const scoreOf = (bid, tricks) => tricks === bid ? 2 + tricks : -Math.abs(tricks - bid);
+
+let G, HIST = [];
+
+function fresh() {
+  return {
+    phase: "setup",       // setup | bidNon | bidDealer | tricks | done
+    first: 0,             // seat dealing round 0
+    round: 0,             // index into LADDER
+    bids: [null, null],
+    tricks: [null, null],
+    totals: [0, 0],
+    names: ["Gold", "Blue"],
+    log: [],
+    clash: false,         // trick counts entered but they do not add up
+  };
+}
+
+const size = () => LADDER[G.round];
+const dealer = () => (G.first + G.round) % 2;
+const other = s => 1 - s;
+
+/* --- history ------------------------------------------------------------- */
+
+function snap() {
+  HIST.push(JSON.stringify(G));
+  if (HIST.length > 80) HIST.shift();
+}
+function undo() {
+  if (!HIST.length) return;
+  G = JSON.parse(HIST.pop());
+  save(); render();
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ G, HIST })); } catch (e) {}
+}
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (raw && raw.G && Array.isArray(raw.G.log)) { G = raw.G; HIST = raw.HIST || []; return; }
+  } catch (e) {}
+  G = fresh();
+}
+
+/* --- actions ------------------------------------------------------------- */
+
+function pickFirst(seat) {
+  snap();
+  G.first = seat;
+  G.phase = "bidNon";
+  after();
+}
+
+function setBid(seat, value) {
+  snap();
+  G.bids[seat] = value;
+  G.phase = G.phase === "bidNon" ? "bidDealer" : "tricks";
+  after();
+}
+
+function setTricks(seat, value) {
+  snap();
+  G.tricks[seat] = value;
+  const [a, b] = G.tricks;
+  if (a === null || b === null) { G.clash = false; after(); return; }
+  if (a + b !== size()) { G.clash = true; after(); return; }
+  commit();
+}
+
+function commit() {
+  const pts = [scoreOf(G.bids[0], G.tricks[0]), scoreOf(G.bids[1], G.tricks[1])];
+  G.totals = [G.totals[0] + pts[0], G.totals[1] + pts[1]];
+  G.log.push({
+    n: size(), dealer: dealer(), bids: G.bids.slice(),
+    tricks: G.tricks.slice(), pts, totals: G.totals.slice(),
+  });
+  G.round++;
+  G.bids = [null, null];
+  G.tricks = [null, null];
+  G.clash = false;
+  G.phase = G.round >= LADDER.length ? "done" : "bidNon";
+  after();
+}
+
+function after() { save(); render(); }
+
+/* --- rendering ----------------------------------------------------------- */
+
+/* Number pad 0..max. Nine keys still need to fit half a phone, so anything past five keys
+   wraps to two rows rather than shrinking the targets. */
+function pad(max, chosen, forbidden, onPick) {
+  const box = el("div", "pad");
+  const count = max + 1;
+  const cols = count <= 5 ? count : Math.ceil(count / 2);
+  box.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  for (let v = 0; v <= max; v++) {
+    const dead = v === forbidden;
+    const k = el("button", "key" + (dead ? " no" : "") + (v === chosen ? " on" : ""), String(v));
+    if (dead) k.disabled = true;
+    else k.addEventListener("click", () => onPick(v));
+    box.appendChild(k);
+  }
+  return box;
+}
+
+function bigNumber(text, cap, cls) {
+  const wrap = el("div", "prompt");
+  wrap.appendChild(el("div", "big" + (cls ? " " + cls : ""), text));
+  if (cap) wrap.appendChild(el("div", "cap", cap));
+  return wrap;
+}
+
+const signed = v => (v > 0 ? "+" : "") + v;
+
+function seatHead(seat, { chip = true, total = true } = {}) {
+  const head = el("div", "head");
+  head.appendChild(el("span", "who", G.names[seat]));
+  if (chip) {
+    const isDealer = dealer() === seat;
+    head.appendChild(el("span", "deals" + (isDealer ? " on" : ""), isDealer ? "Deals" : "Leads"));
+  }
+  if (total) {
+    // Last round's swing rides alongside the running total, so returning to the bid screen
+    // still says what just happened without needing a screen of its own.
+    const right = el("span", "right");
+    const last = G.log[G.log.length - 1];
+    if (last) {
+      const d = last.pts[seat];
+      right.appendChild(el("span", "delta " + (d > 0 ? "up" : "down"), signed(d)));
+    }
+    right.appendChild(el("span", "tot", signed(G.totals[seat])));
+    head.appendChild(right);
+  }
+  return head;
+}
+
+function renderSeat(seat) {
+  const box = $("s" + seat);
+  box.innerHTML = "";
+  box.classList.remove("idle");
+
+  if (G.phase === "setup") {
+    box.appendChild(el("div", "head")).appendChild(el("span", "who", G.names[seat]));
+    const p = el("div", "prompt");
+    p.appendChild(el("div", "cap", "Tap if you deal the first hand"));
+    box.appendChild(p);
+    const one = el("div", "pad");
+    one.style.gridTemplateColumns = "1fr";
+    const k = el("button", "key wide", "I DEAL FIRST");
+    k.addEventListener("click", () => pickFirst(seat));
+    one.appendChild(k);
+    box.appendChild(one);
+    return;
+  }
+
+  if (G.phase === "done") {
+    // Both halves announce the result at once, each the right way up for the player it
+    // faces. The full scorecard is one tap away rather than covering the table.
+    box.appendChild(seatHead(seat, { chip: false, total: false }));
+    const gap = G.totals[seat] - G.totals[other(seat)];
+    box.appendChild(bigNumber(
+      signed(G.totals[seat]),
+      gap === 0 ? "Drawn game" : gap > 0 ? `Winner by ${gap}` : `Short by ${-gap}`,
+      gap > 0 ? "made" : gap < 0 ? "missed" : ""));
+    return;
+  }
+
+  const n = size(), d = dealer(), isDealer = seat === d;
+  box.appendChild(seatHead(seat));
+  const sub = el("div", "sub");
+  box.appendChild(sub);
+
+  if (G.phase === "bidNon" || G.phase === "bidDealer") {
+    const bidding = G.phase === "bidNon" ? other(d) : d;
+    if (seat === bidding) {
+      // The hook: the dealer may not make the two bids total the hand size.
+      const banned = isDealer ? n - G.bids[other(seat)] : -1;
+      sub.textContent = isDealer && banned >= 0 && banned <= n
+        ? `Your bid · not ${banned}, bids can't total ${n}`
+        : "Your bid";
+      box.appendChild(pad(n, G.bids[seat], banned, v => setBid(seat, v)));
+    } else {
+      box.classList.add("idle");
+      if (G.bids[seat] === null) {
+        sub.textContent = isDealer ? "You bid second" : "";
+        box.appendChild(bigNumber("–", "waiting"));
+      } else {
+        sub.textContent = "";
+        box.appendChild(bigNumber(String(G.bids[seat]), "your bid"));
+      }
+    }
+    return;
+  }
+
+  // Tricks: both pads live at once, so the two entries are independent.
+  sub.textContent = `You bid ${G.bids[seat]} · how many did you take?`;
+  if (G.clash) {
+    const w = el("div", "warn",
+      `That is ${G.tricks[0] + G.tricks[1]} tricks between you, but the hand was ${n}. Re-tap.`);
+    box.appendChild(w);
+  }
+  box.appendChild(pad(n, G.tricks[seat], -1, v => setTricks(seat, v)));
+}
+
+function render() {
+  renderSeat(0);
+  renderSeat(1);
+
+  const r = $("round");
+  if (G.phase === "setup") r.textContent = "Who deals?";
+  else if (G.phase === "done") r.innerHTML = "<b>Scorecard</b>";
+  else r.innerHTML = `Round <b>${G.round + 1}</b>/16 · <b>${size()}</b> card${size() > 1 ? "s" : ""}`;
+  $("undo").disabled = !HIST.length;
+
+  const sheet = $("sheet");
+  if (!sheet.classList.contains("hidden")) showSheet();   // keep an open sheet current
+}
+
+/* --- scorecard ----------------------------------------------------------- */
+
+function showSheet() {
+  const sheet = $("sheet");
+  const flipped = sheet.classList.contains("flip");   // survive a re-render
+  sheet.className = "sheet" + (flipped ? " flip" : "");
+  sheet.innerHTML = "";
+
+  const body = el("div", "sheetbody");
+  const [a, b] = G.totals;
+  const title = el("h1");
+  if (G.phase !== "done") {
+    title.textContent = `After ${G.log.length} round${G.log.length === 1 ? "" : "s"}`;
+  } else if (a === b) {
+    title.textContent = "Drawn game";
+  } else {
+    const w = a > b ? 0 : 1;
+    title.innerHTML = `<span class="win${w}">${G.names[w]}</span> wins by ${Math.abs(a - b)}`;
+  }
+  body.appendChild(title);
+
+  const table = el("table");
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th></th><th></th>
+        <th class="g0" colspan="3">${G.names[0]}</th>
+        <th class="g1" colspan="3">${G.names[1]}</th>
+      </tr>
+      <tr>
+        <th>R</th><th>Cards</th>
+        <th>Bid</th><th>Got</th><th>Total</th>
+        <th>Bid</th><th>Got</th><th>Total</th>
+      </tr>
+    </thead>`;
+  const tb = el("tbody");
+  G.log.forEach((row, i) => {
+    const tr = el("tr", "d" + row.dealer);
+    tr.appendChild(el("td", null, String(i + 1)));
+    tr.appendChild(el("td", null, String(row.n)));
+    for (const s of [0, 1]) {
+      const hit = row.tricks[s] === row.bids[s];
+      tr.appendChild(el("td", null, String(row.bids[s])));
+      tr.appendChild(el("td", hit ? "hit" : "miss", String(row.tricks[s])));
+      tr.appendChild(el("td", "tt", String(row.totals[s])));
+    }
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  body.appendChild(table);
+  body.appendChild(el("div", "note",
+    "·D marks the dealer. At most one player can make their bid in a round, because the "
+    + "dealer is barred from the bid that would make the two bids total the hand size."));
+  sheet.appendChild(body);
+
+  const btns = el("div", "sheetbtns");
+  const flip = el("button", null, "Flip");
+  flip.addEventListener("click", () => sheet.classList.toggle("flip"));
+  const copy = el("button", null, "Copy");
+  copy.addEventListener("click", () => copyText(asText(), copy));
+  const close = el("button", null, "Close");
+  close.addEventListener("click", () => sheet.classList.add("hidden"));
+  btns.append(flip, copy, close);
+  sheet.appendChild(btns);
+}
+
+function asText() {
+  const w = (s, n) => String(s).padStart(n);
+  const lines = [
+    `Wizard · ${G.names[0]} vs ${G.names[1]}`,
+    ` R  n | ${G.names[0]} bid got tot | ${G.names[1]} bid got tot`,
+  ];
+  G.log.forEach((r, i) => {
+    lines.push(
+      `${w(i + 1, 2)} ${w(r.n, 2)} |` +
+      `${w(r.bids[0], 8)} ${w(r.tricks[0], 3)} ${w(r.totals[0], 3)} |` +
+      `${w(r.bids[1], 8)} ${w(r.tricks[1], 3)} ${w(r.totals[1], 3)}` +
+      (r.dealer === 0 ? "   (dealt by " + G.names[0] + ")" : "   (dealt by " + G.names[1] + ")"));
+  });
+  lines.push(`Final: ${G.names[0]} ${G.totals[0]}, ${G.names[1]} ${G.totals[1]}`);
+  return lines.join("\n");
+}
+
+/* Clipboard API is unavailable over file://, so fall back to a throwaway textarea. */
+function copyText(text, btn) {
+  const done = ok => { btn.textContent = ok ? "Copied" : "Failed"; setTimeout(() => btn.textContent = "Copy", 1400); };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+    return;
+  }
+  const ta = el("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  ta.remove();
+  done(ok);
+}
+
+function newGame() {
+  G = fresh();
+  HIST = [];
+  save(); render();
+}
+
+/* --- wiring -------------------------------------------------------------- */
+
+$("undo").addEventListener("click", undo);
+$("round").addEventListener("click", () => {
+  if (G.phase === "setup") return;
+  if ($("sheet").classList.contains("hidden")) showSheet();
+  else $("sheet").classList.add("hidden");
+});
+$("reset").addEventListener("click", () => {
+  if (G.phase === "setup" || confirm("Throw away this game and start over?")) newGame();
+});
+
+/* A phone lying on a table locks itself mid-hand otherwise. Best effort only: unsupported
+   browsers simply do not get it, and the lock is dropped and retaken across tab switches. */
+let lock = null;
+async function keepAwake() {
+  if (!("wakeLock" in navigator)) return;
+  try { lock = await navigator.wakeLock.request("screen"); } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") keepAwake();
+});
+document.addEventListener("click", function once() {
+  keepAwake();
+  document.removeEventListener("click", once);
+});
+
+load();
+render();
+</script>
+</body>
+</html>

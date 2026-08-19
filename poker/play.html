@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heads-Up Hold'em · Trainer</title>
+<!--
+  Heads-up No-Limit Hold'em against a range-based opponent, with the arithmetic shown while
+  you play and a full breakdown of every decision after the hand.
+
+  The rules, the opponent and the analysis live in game.js and core.js so they can be driven
+  headlessly by test_core.js and test_game.js. This file is the table.
+
+  What is exact and what is not, kept apart deliberately:
+    exact      hand evaluation, equity by enumerating every runout, all pot arithmetic
+    MODELLED   which hands the opponent holds
+    ASSUMED    that a call ends the betting (a floor for draws, a ceiling for bluff-catchers)
+-->
+<style>
+:root{
+  --felt-1:#4b8f70; --felt-2:#357a5c; --felt-3:#2a6350;
+  --panel:#39404b; --panel-2:#454d5a; --panel-dark:#22262e; --edge:#12151b;
+  --gold:#e5a23c; --gold-hi:#f6c860; --gold-lo:#9d6516;
+  --blue:#2b9bf0; --blue-hi:#6dc0ff;
+  --red:#ef5a4c; --red-lo:#8d2820; --green:#54c98a;
+  --ink:#fdfbf3; --dim:#9aa4b2; --face:#fdfaf0;
+  --s-spade:#1c2128; --s-heart:#d6302f; --s-diamond:#2b7fd4; --s-club:#2e9e5b;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{height:100%; margin:0}
+body{
+  background:radial-gradient(ellipse 120% 90% at 50% 42%, var(--felt-1), var(--felt-2) 55%, var(--felt-3));
+  color:var(--ink); font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-weight:700; overflow:hidden;
+}
+button{font:inherit; color:inherit; border:0; background:none; cursor:pointer; touch-action:manipulation}
+
+.app{height:100dvh; display:grid; grid-template-columns:1fr 340px}
+@media (max-width:900px){ .app{grid-template-columns:1fr} .panel{display:none} }
+
+/* ---------------------------------------------------------------- table */
+.table{display:flex; flex-direction:column; min-height:0; padding:10px 14px; gap:6px}
+.top{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--dim)}
+.top b{color:var(--ink)}
+.pl{margin-left:auto; font-variant-numeric:tabular-nums; font-size:14px}
+.pl.up{color:var(--gold-hi)} .pl.down{color:var(--red)}
+
+.seat{display:flex; align-items:center; gap:12px; padding:8px 0}
+.who{font-size:14px; font-weight:900; min-width:64px}
+.stack{font-size:13px; color:var(--dim); font-variant-numeric:tabular-nums}
+.chip{
+  font-size:10px; font-weight:900; letter-spacing:.07em; text-transform:uppercase;
+  padding:2px 7px; border-radius:99px; background:rgba(0,0,0,.32); color:var(--dim);
+}
+.chip.btn{background:var(--ink); color:var(--edge)}
+.said{font-size:12px; color:var(--gold-hi); min-height:16px}
+.wager{margin-left:auto; font-size:13px; font-variant-numeric:tabular-nums; color:var(--gold-hi)}
+
+.mid{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:0}
+.pot{font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim)}
+.pot b{font-size:22px; color:var(--ink); letter-spacing:0}
+.board{display:flex; gap:6px; min-height:96px; align-items:center}
+
+.card{
+  width:64px; height:92px; border-radius:8px; background:var(--face); color:var(--s-spade);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.12); flex:0 0 auto;
+}
+.card .r{font-size:26px; line-height:1; font-weight:900}
+.card .s{font-size:22px; line-height:1}
+.card.sm{width:46px; height:66px} .card.sm .r{font-size:19px} .card.sm .s{font-size:16px}
+.card.back{
+  background:repeating-linear-gradient(45deg,#2b3a67 0 6px,#222f55 6px 12px);
+  box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.1);
+}
+.card.dim{opacity:.34}
+.h{color:var(--s-heart)} .d{color:var(--s-diamond)} .c{color:var(--s-club)} .s0{color:var(--s-spade)}
+
+/* ---------------------------------------------------------------- controls */
+.controls{display:flex; flex-direction:column; gap:7px; padding-bottom:max(6px,env(safe-area-inset-bottom))}
+.row{display:flex; gap:7px}
+.act{
+  flex:1; padding:13px 8px; border-radius:10px; font-size:14px; font-weight:900;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel)); box-shadow:0 3px 0 var(--edge);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.act:active{transform:translateY(3px); box-shadow:0 0 0 var(--edge)}
+.act small{font-size:10px; font-weight:800; color:var(--dim); letter-spacing:.03em}
+.act.fold{background:linear-gradient(180deg,#6b4340,#4e2f2d)}
+.act.call{background:linear-gradient(180deg,#3d5f7a,#2b4459)}
+.act.raise{background:linear-gradient(180deg,var(--gold),var(--gold-lo)); color:var(--edge)}
+.act.raise small{color:rgba(0,0,0,.6)}
+.act.best{outline:2px solid var(--gold-hi); outline-offset:2px}
+.act[disabled]{opacity:.35}
+.sizes{display:flex; gap:6px; align-items:center}
+.sizes button{
+  padding:7px 9px; border-radius:8px; font-size:11px; font-weight:900; color:var(--dim);
+  background:rgba(255,255,255,.08);
+}
+.sizes button.on{background:var(--gold); color:var(--edge)}
+input[type=range]{flex:1; accent-color:var(--gold)}
+.next{
+  padding:14px; border-radius:10px; font-size:15px; font-weight:900; text-align:center;
+  background:linear-gradient(180deg,var(--gold),var(--gold-lo)); color:var(--edge);
+  box-shadow:0 3px 0 var(--gold-lo);
+}
+
+/* ---------------------------------------------------------------- panel */
+.panel{
+  background:rgba(10,20,16,.55); border-left:1px solid rgba(0,0,0,.4);
+  padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px; font-size:12px;
+}
+.panel h2{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin:0}
+.eqbar{height:22px; border-radius:6px; background:rgba(0,0,0,.4); overflow:hidden; position:relative}
+.eqbar i{display:block; height:100%; background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi))}
+.eqbar span{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; font-weight:900}
+.facts{display:grid; grid-template-columns:1fr auto; gap:3px 8px; font-variant-numeric:tabular-nums}
+.facts .k{color:var(--dim)}
+.evrow{
+  display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center;
+  padding:5px 7px; border-radius:7px; background:rgba(255,255,255,.05);
+}
+.evrow.top{background:rgba(230,162,60,.18); outline:1px solid rgba(246,200,96,.4)}
+.evrow .a{font-weight:900; text-transform:capitalize}
+.evrow .n{font-size:10px; color:var(--dim); font-weight:700}
+.evrow .v{font-variant-numeric:tabular-nums; font-weight:900}
+.evrow .v.pos{color:var(--gold-hi)} .evrow .v.neg{color:var(--red)}
+.caveat{font-size:10px; line-height:1.5; color:var(--dim); font-weight:700}
+.outs{display:flex; flex-direction:column; gap:1px}
+.outs b{font-size:15px; color:var(--gold-hi)}
+.outs.calm b{color:var(--green)}
+.outs span{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
+.outs i{font-size:10px; color:var(--dim); font-style:normal}
+.odds table{border-collapse:collapse; width:100%; font-size:11px; font-variant-numeric:tabular-nums}
+.odds th,.odds td{padding:2px 3px; text-align:right; border-bottom:1px solid rgba(255,255,255,.07)}
+.odds th:first-child,.odds td:first-child{text-align:left; font-weight:900}
+.odds th{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--dim)}
+.odds tr.live{background:rgba(230,162,60,.22); outline:1px solid rgba(246,200,96,.45)}
+.odds h2{margin:10px 0 3px}
+
+/* ---------------------------------------------------------------- retro */
+.retro{
+  position:fixed; inset:0; z-index:30; background:rgba(6,14,11,.975); overflow:auto;
+  padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:12px;
+}
+.retro h1{margin:0; font-size:20px}
+.retro h1 .w{color:var(--gold-hi)} .retro h1 .l{color:var(--red)}
+.street{border-left:2px solid rgba(255,255,255,.15); padding:2px 0 2px 10px; display:flex; flex-direction:column; gap:7px}
+.street>h3{
+  margin:0; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+  display:flex; gap:8px; align-items:center;
+}
+.dec{background:rgba(255,255,255,.05); border-radius:9px; padding:8px 10px; display:flex; flex-direction:column; gap:5px}
+.dec .hdr{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
+.dec .did{font-weight:900}
+.dec .verdict{font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px}
+.v-ok{background:var(--gold-lo); color:var(--ink)}
+.v-fine{background:rgba(255,255,255,.14); color:var(--dim)}
+.v-bad{background:var(--red-lo); color:var(--ink)}
+.dec .line{font-size:11px; color:var(--dim); font-weight:700; line-height:1.55}
+.dec .line b{color:var(--ink)}
+.mini{display:flex; flex-wrap:wrap; gap:5px}
+.mini .m{font-size:10px; padding:3px 7px; border-radius:6px; background:rgba(0,0,0,.3); font-variant-numeric:tabular-nums}
+.mini .m.best{background:var(--gold-lo)}
+.mini .m.you{outline:1px solid var(--blue-hi)}
+.rbtns{display:flex; gap:8px; position:sticky; bottom:0; padding-top:6px}
+.rbtns button{
+  flex:1; padding:13px; border-radius:10px; font-size:13px; font-weight:900;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel)); box-shadow:0 3px 0 var(--edge);
+}
+.rbtns button.go{background:linear-gradient(180deg,var(--gold),var(--gold-lo)); color:var(--edge)}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="table">
+    <div class="top">
+      Hand <b id="handno">1</b> · blinds <b>50/100</b> · <b>100bb</b> deep
+      <span class="pl" id="pl">0</span>
+    </div>
+
+    <div class="seat" id="seatBot"></div>
+    <div class="mid">
+      <div class="pot">Pot <b id="pot">0</b></div>
+      <div class="board" id="board"></div>
+      <div class="said" id="msg"></div>
+    </div>
+    <div class="seat" id="seatHero"></div>
+
+    <div class="controls" id="controls"></div>
+  </div>
+
+  <div class="panel" id="panel"></div>
+</div>
+<div class="retro hidden" id="retro"></div>
+
+<script src="core.js"></script>
+<script src="game.js"></script>
+<script>
+"use strict";
+const P = window.Poker, G = window.Game;
+const $ = id => document.getElementById(id);
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+const SUIT_GLYPH = ["♣", "♦", "♥", "♠"];   // clubs diamonds hearts spades
+const SUIT_CLASS = ["c", "d", "h", "s0"];
+const fmt = n => (n < 0 ? "-" : "") + Math.abs(Math.round(n)).toLocaleString();
+const bb = n => (n / G.BB).toFixed(1) + "bb";
+const pct = x => (x * 100).toFixed(1) + "%";
+
+let st = null, handNo = 1, pl = 0, pending = null, sliderTo = null, history = [];
+
+/* ---------------------------------------------------------------- rendering */
+
+function cardEl(c, cls) {
+  if (c == null) { const n = el("div", "card back" + (cls ? " " + cls : "")); return n; }
+  const n = el("div", "card " + SUIT_CLASS[c & 3] + (cls ? " " + cls : ""));
+  n.appendChild(el("div", "r", P.RANKS[c >> 2]));
+  n.appendChild(el("div", "s", SUIT_GLYPH[c & 3]));
+  return n;
+}
+
+function renderSeat(node, who) {
+  node.innerHTML = "";
+  const isBtn = st.button === who;
+  node.appendChild(el("div", "who", who === G.HERO ? "You" : "Bot"));
+  node.appendChild(el("div", "chip" + (isBtn ? " btn" : ""), isBtn ? "BTN" : "BB"));
+  node.appendChild(el("div", "stack", fmt(st.stacks[who])));
+  const cards = el("div", "board");
+  const show = who === G.HERO || (st.over && st.result && st.result.reason === "showdown");
+  for (const c of st.holes[who]) cards.appendChild(cardEl(show ? c : null, "sm"));
+  node.appendChild(cards);
+  if (st.bet[who]) node.appendChild(el("div", "wager", fmt(st.bet[who])));
+}
+
+function render() {
+  $("handno").textContent = handNo;
+  const p = $("pl");
+  p.textContent = (pl > 0 ? "+" : "") + fmt(pl) + "  (" + (pl / G.BB).toFixed(1) + "bb)";
+  p.className = "pl " + (pl > 0 ? "up" : pl < 0 ? "down" : "");
+
+  renderSeat($("seatBot"), G.BOT);
+  renderSeat($("seatHero"), G.HERO);
+  $("pot").textContent = fmt(G.totalPot(st));
+
+  const b = $("board");
+  b.innerHTML = "";
+  for (let i = 0; i < 5; i++) b.appendChild(i < st.board.length ? cardEl(st.board[i]) : cardEl(null, "dim"));
+
+  renderControls();
+  renderPanel();
+}
+
+/* ---------------------------------------------------------------- controls */
+
+function renderControls() {
+  const c = $("controls");
+  c.innerHTML = "";
+  if (st.over) {
+    const go = el("button", "next", "Next hand  ↵");
+    go.onclick = nextHand;
+    c.appendChild(go);
+    return;
+  }
+  if (st.toAct !== G.HERO) return;
+
+  const acts = G.legalActions(st);
+  const need = G.toCall(st, G.HERO);
+  const pot = G.totalPot(st);
+  const raise = acts.find(a => a.type === "bet" || a.type === "raise");
+  const A = pending;
+  const bestAction = A && A.best ? A.best : null;
+  const isBest = row => bestAction && row.action === bestAction.action &&
+                        (row.to == null || row.to === bestAction.to);
+
+  const row1 = el("div", "row");
+  if (need > 0) {
+    row1.appendChild(button("fold", "Fold", "", () => act({ type: "fold" }), isBest({ action: "fold" })));
+    const amt = Math.min(need, st.stacks[G.HERO]);
+    row1.appendChild(button("call", "Call " + fmt(amt), bb(amt),
+      () => act({ type: "call" }), isBest({ action: "call" })));
+  } else {
+    row1.appendChild(button("", "Check", "", () => act({ type: "check" }), isBest({ action: "check" })));
+  }
+  c.appendChild(row1);
+
+  if (raise) {
+    if (sliderTo == null) sliderTo = Math.min(raise.maxTo, G.clampTo(raise, (st.bet[G.BOT] || 0) + pot * 0.66));
+    const sizes = el("div", "sizes");
+    for (const [label, frac] of [["⅓", 0.33], ["½", 0.5], ["¾", 0.75], ["Pot", 1.0]]) {
+      const to = G.clampTo(raise, (st.bet[G.BOT] || 0) + pot * frac);
+      const btn = el("button", sliderTo === to ? "on" : "", label);
+      btn.onclick = () => { sliderTo = to; renderControls(); renderPanel(); };
+      sizes.appendChild(btn);
+    }
+    const allBtn = el("button", sliderTo === raise.maxTo ? "on" : "", "All in");
+    allBtn.onclick = () => { sliderTo = raise.maxTo; renderControls(); renderPanel(); };
+    sizes.appendChild(allBtn);
+    c.appendChild(sizes);
+
+    const sl = document.createElement("input");
+    sl.type = "range"; sl.min = raise.minTo; sl.max = raise.maxTo; sl.step = G.SB;
+    sl.value = Math.max(raise.minTo, Math.min(sliderTo, raise.maxTo));
+    sl.oninput = () => { sliderTo = +sl.value; renderControls(); renderPanel(); };
+    const slRow = el("div", "sizes");
+    slRow.appendChild(sl);
+    c.appendChild(slRow);
+
+    const to = Math.max(raise.minTo, Math.min(sliderTo, raise.maxTo));
+    const label = need > 0 ? "Raise to " + fmt(to) : "Bet " + fmt(to);
+    c.appendChild(el("div", "row")).appendChild(
+      button("raise", label, bb(to - st.bet[G.HERO]) + " · " + (pot ? Math.round((to - st.bet[G.HERO]) / pot * 100) : 0) + "% pot",
+             () => act({ type: raise.type, to }), isBest({ action: need > 0 ? "raise" : "bet", to })));
+  }
+}
+
+function button(cls, label, sub, onclick, best) {
+  const b = el("button", "act " + cls + (best ? " best" : ""));
+  b.appendChild(el("span", null, label));
+  if (sub) b.appendChild(el("small", null, sub));
+  b.onclick = onclick;
+  return b;
+}
+
+/* ---------------------------------------------------------------- live panel */
+
+function renderPanel() {
+  const p = $("panel");
+  p.innerHTML = "";
+  const A = (!st.over && st.toAct === G.HERO) ? pending : null;
+
+  if (A) {
+    // Equity.
+    const bar = el("div", "eqbar");
+    const fill = el("i"); fill.style.width = (A.equity * 100).toFixed(1) + "%";
+    bar.appendChild(fill);
+    bar.appendChild(el("span", null, pct(A.equity) + (A.exact ? "" : " ±" + (A.stderr * 100).toFixed(2))));
+    p.appendChild(bar);
+
+    /* Outs, but only framed as outs when you are actually behind. With a made hand the
+       count is a bonus on top of a hand that is already winning, and printing "5 outs" beside
+       86% equity reads as though the 5 outs were how you win. Ahead, the headline is what you
+       are already beating; behind, it is the count. */
+    const O = P.outs(st.holes[G.HERO], st.board);
+    const winning = A.ahead != null && A.ahead >= 0.5;
+    if (A.ahead != null) {
+      const o = el("div", "outs" + (winning ? " calm" : ""));
+      if (winning) {
+        o.appendChild(el("b", null, "Ahead of " + pct(A.ahead)));
+        o.appendChild(el("span", null, O && O.n
+          ? `already best · ${O.n} cards improve you further`
+          : "already best against their range"));
+      } else if (O && O.n) {
+        o.appendChild(el("b", null, O.n + " outs"));
+        o.appendChild(el("span", null, `${pct(O.turn)} next card · ${pct(O.river)} by river`));
+      } else {
+        o.appendChild(el("b", null, "Behind " + pct(1 - A.ahead)));
+        o.appendChild(el("span", null, "and nothing left to improve to"));
+      }
+      if (O && O.n) o.appendChild(el("i", null, O.groups.map(g => `${g.n} ${g.label}`).join(" · ")));
+      p.appendChild(o);
+    }
+
+    // The two numbers that decide a call, and nothing else.
+    if (A.need > 0) {
+      const f = el("div", "facts");
+      f.append(el("div", "k", "You need"), el("div", null, pct(A.price)),
+               el("div", "k", "Defend"), el("div", null, pct(A.mdf)));
+      p.appendChild(f);
+    }
+
+    // Actions, best first, EV only.
+    for (const r of A.rows) {
+      const row = el("div", "evrow" + (r === A.rows[0] ? " top" : ""));
+      row.appendChild(el("div", "a", r.action + (r.to ? " " + fmt(r.to) : "")));
+      row.appendChild(el("div", "v " + (r.ev > 0.5 ? "pos" : r.ev < -0.5 ? "neg" : ""),
+                         (r.ev > 0 ? "+" : "") + fmt(r.ev)));
+      p.appendChild(row);
+    }
+    p.appendChild(el("div", "caveat",
+      "EV in chips, folding = 0, assuming a call ends the betting."));
+  } else {
+    p.appendChild(el("div", "caveat", st.over ? "Hand complete." : "Opponent to act."));
+  }
+
+  p.appendChild(oddsTable(A));
+}
+
+/* The price of every standard size, in one place. Pure arithmetic, identical every hand, so
+ * it is a reference rather than a readout: with f the bet as a fraction of the pot,
+ *
+ *     they need to call   f / (1 + 2f)        they must defend   1 / (1 + f)
+ *     your bluff needs    f / (1 + f) folds   your bluffs may be f / (1 + 2f)
+ *
+ * "They need" and "your bluffs may be" are the same expression because both are the point
+ * where calling is exactly indifferent. The row matching the live bet is highlighted, which
+ * is what turns the table from wallpaper into something you read.
+ */
+const SIZES = [[0.25, "¼"], [1 / 3, "⅓"], [0.5, "½"], [2 / 3, "⅔"], [0.75, "¾"],
+               [1, "pot"], [1.5, "1½×"], [2, "2×"]];
+
+function oddsTable(A) {
+  const wrap = el("div", "odds");
+  wrap.appendChild(el("h2", null, "Price of each size"));
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>Bet</th><th>They need</th><th>They defend</th><th>Bluff needs</th></tr></thead>";
+  const tb = el("tbody");
+
+  // Which row is live: the bet you are facing, or the one you are about to make.
+  let live = null;
+  if (!st.over && st.toAct === G.HERO) {
+    const pot = G.totalPot(st), need = G.toCall(st, G.HERO);
+    const f = need > 0 ? need / (pot - need)
+            : (sliderTo != null ? (sliderTo - st.bet[G.HERO]) / pot : null);
+    if (f != null && isFinite(f)) {
+      let bestGap = Infinity;
+      for (const [frac] of SIZES) if (Math.abs(frac - f) < bestGap) { bestGap = Math.abs(frac - f); live = frac; }
+    }
+  }
+  for (const [f, label] of SIZES) {
+    const tr = el("tr", f === live ? "live" : "");
+    tr.append(el("td", null, label),
+              el("td", null, pct(f / (1 + 2 * f))),
+              el("td", null, pct(1 / (1 + f))),
+              el("td", null, pct(f / (1 + f))));
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  wrap.appendChild(t);
+  wrap.appendChild(el("div", "caveat",
+    "They need = equity to call. They defend = how often, or your bluff prints. " +
+    "Bluff needs = folds a pure bluff requires. Column 1 is also the share of your betting " +
+    "range that may be bluffs."));
+  return wrap;
+}
+
+/* ---------------------------------------------------------------- flow */
+
+function act(action) {
+  // Price the exact size the player chose, so the retro compares like with like.
+  const extra = action.to ? [action.to] : [];
+  const A = G.analyse(st, st.holes[G.HERO], extra);
+  const rec = G.applyAction(st, action);
+  rec.analysis = A;
+  rec.chosen = matchRow(A.rows, action, rec);
+  sliderTo = null;
+  step();
+}
+
+function matchRow(rows, action, rec) {
+  if (action.type === "bet" || action.type === "raise") {
+    return rows.find(r => r.to === rec.to) || null;
+  }
+  return rows.find(r => r.action === action.type) || null;
+}
+
+function step() {
+  render();
+  if (st.over) { finish(); return; }
+  if (st.toAct === G.BOT) {
+    $("msg").textContent = "Bot is thinking…";
+    setTimeout(() => {
+      const a = G.botAction(st);
+      const rec = G.applyAction(st, a);
+      $("msg").textContent = "Bot " + describeAction(rec, false) + (rec.note ? " · " + rec.note : "");
+      step();
+    }, 380);
+    return;
+  }
+  pending = G.analyse(st, st.holes[G.HERO], sliderTo ? [sliderTo] : []);
+  render();
+}
+
+/* Second person for the player, third for the opponent, so the retro reads as prose rather
+ * than as log lines. */
+function describeAction(rec, second) {
+  const v = (a, b) => second ? a : b;
+  if (rec.type === "fold") return v("fold", "folds");
+  if (rec.type === "check") return v("check", "checks");
+  if (rec.type === "call") return v("call ", "calls ") + fmt(rec.amount);
+  if (rec.toCall > 0) return v("raise to ", "raises to ") + fmt(rec.to);
+  return v("bet ", "bets ") + fmt(rec.to);
+}
+
+function finish() {
+  G.settle(st);
+  pl += st.stacks[G.HERO] - G.START;
+  const r = st.result;
+  $("msg").textContent = r.reason === "fold"
+    ? (r.winner === G.HERO ? "Bot folds. You win " + fmt(r.pot) : "You fold.")
+    : (r.winner === -1 ? "Split pot."
+       : (r.winner === G.HERO ? "You win " : "Bot wins ") + fmt(r.pot) +
+         " with " + P.describe(P.evaluate(st.holes[r.winner].concat(st.board))));
+  history.push(st);
+  render();
+  showRetro();
+}
+
+function nextHand() {
+  handNo++;
+  st = G.newHand(handNo, handNo % 2, null, handNo * 7919 + 13);
+  pending = null; sliderTo = null;
+  $("msg").textContent = "";
+  $("retro").classList.add("hidden");
+  step();
+}
+
+/* ---------------------------------------------------------------- retro */
+
+function verdictOf(chosen, best) {
+  if (!chosen || !best) return ["v-fine", "no read"];
+  const loss = best.ev - chosen.ev;
+  if (loss < 1) return ["v-ok", "best"];
+  if (loss < G.BB * 0.75) return ["v-fine", "close"];
+  return ["v-bad", "-" + fmt(loss)];
+}
+
+function showRetro() {
+  const R = $("retro");
+  R.className = "retro";
+  R.innerHTML = "";
+
+  const r = st.result;
+  const net = st.stacks[G.HERO] - G.START;
+  const h1 = el("h1");
+  h1.innerHTML = net > 0 ? `<span class="w">+${fmt(net)}</span> this hand`
+               : net < 0 ? `<span class="l">${fmt(net)}</span> this hand`
+               : "Break even this hand";
+  R.appendChild(h1);
+  R.appendChild(el("div", "caveat",
+    `You held ${P.show(st.holes[G.HERO])}. ` +
+    (r.reason === "showdown" ? `Bot showed ${P.show(st.holes[G.BOT])}. ` : "Bot never showed. ") +
+    `Board ${st.board.length ? P.show(st.board) : "(none)"}.`));
+
+  let street = -1, wrap = null;
+  for (const rec of st.log) {
+    if (rec.street !== street) {
+      street = rec.street;
+      wrap = el("div", "street");
+      const h3 = el("h3", null, G.STREETS[street]);
+      if (rec.board.length) h3.appendChild(el("span", null, P.show(rec.board)));
+      wrap.appendChild(h3);
+      R.appendChild(wrap);
+    }
+    wrap.appendChild(decisionEl(rec));
+  }
+
+  const btns = el("div", "rbtns");
+  const copy = el("button", null, "Copy for Claude");
+  copy.onclick = () => copyText(asText(), copy);
+  const go = el("button", "go", "Next hand");
+  go.onclick = nextHand;
+  btns.append(copy, go);
+  R.appendChild(btns);
+}
+
+function decisionEl(rec) {
+  const d = el("div", "dec");
+  const hdr = el("div", "hdr");
+  hdr.appendChild(el("span", "did", (rec.actor === G.HERO ? "You " : "Bot ") + describeAction(rec, rec.actor === G.HERO)));
+  if (rec.actor === G.HERO && rec.analysis) {
+    const [cls, label] = verdictOf(rec.chosen, rec.analysis.best);
+    hdr.appendChild(el("span", "verdict " + cls, label));
+  }
+  d.appendChild(hdr);
+
+  if (rec.actor !== G.HERO || !rec.analysis) {
+    // Show the opponent's stated reasoning: it is a range-based bot, so its logic is
+    // legible, and a retro that hides it makes the opponent look arbitrary.
+    d.appendChild(el("div", "line",
+      `Pot was ${fmt(rec.potBefore)}.` + (rec.note ? ` Its reason: ${rec.note}.` : "") +
+      (rec.why && rec.why.eq != null
+        ? ` It had ${pct(rec.why.eq)} against the ${rec.why.combos} combos it gives you.` : "")));
+    return d;
+  }
+  const A = rec.analysis;
+  const line = el("div", "line");
+  let text = `Equity <b>${pct(A.equity)}</b> against the <b>${A.combos}</b> combos left in their range. `;
+  if (A.need > 0) {
+    text += `You were laid ${fmt(A.pot - A.need)} to ${fmt(A.need)}, so you needed <b>${pct(A.price)}</b> ` +
+            `and had to defend <b>${pct(A.mdf)}</b> of your range overall. `;
+  }
+  const best = A.best, chosen = rec.chosen;
+  if (chosen && best && best !== chosen) {
+    text += `Best was <b>${best.action}${best.to ? " " + fmt(best.to) : ""}</b> at ` +
+            `${fmt(best.ev)}, against ${fmt(chosen.ev)} for what you did.`;
+  } else if (chosen) {
+    text += `That was the highest-EV option available.`;
+  }
+  line.innerHTML = text;
+  d.appendChild(line);
+
+  const O = P.outs(st.holes[G.HERO], rec.board);
+  if (O && O.n) {
+    const o = el("div", "line");
+    o.innerHTML = `<b>${O.n} outs</b> (${O.groups.map(g => g.n + " " + g.label).join(" · ")}), ` +
+                  `${pct(O.turn)} next card and ${pct(O.river)} by the river.`;
+    d.appendChild(o);
+  }
+  const mini = el("div", "mini");
+  for (const row of A.rows) {
+    const m = el("div", "m" + (row === best ? " best" : "") + (row === chosen ? " you" : ""),
+                 `${row.action}${row.to ? " " + fmt(row.to) : ""} ${row.ev > 0 ? "+" : ""}${fmt(row.ev)}`);
+    mini.appendChild(m);
+  }
+  d.appendChild(mini);
+  return d;
+}
+
+/* ---------------------------------------------------------------- copy out */
+
+const BRIEF = `Heads-up No-Limit Texas Hold'em, 50/100 blinds, 100bb effective stacks.
+The button posts the small blind, acts first preflop and last on every later street.
+
+How to read the numbers below:
+- Equity is EXACT: enumerated over every remaining runout, not sampled.
+- It is measured against a MODELLED range for the opponent, narrowed by their actions.
+- EV is in chips with folding as the zero point, and assumes a call ends the betting.
+  That makes it a floor for draws and a ceiling for thin bluff-catchers.
+- Required equity to call a bet B into pot P is B/(P+2B).
+- Minimum defence frequency against that bet is P/(P+B).
+- A bet of B into P can be B/(P+2B) bluffs before a call stops being indifferent.
+`;
+
+function asText() {
+  const L = [BRIEF, ""];
+  L.push(`Hand ${st.handNo}. You were ${st.button === G.HERO ? "the button" : "the big blind"}.`);
+  L.push(`Your cards: ${P.show(st.holes[G.HERO])}`);
+  L.push(`Board: ${st.board.length ? P.show(st.board) : "(none)"}`);
+  if (st.result.reason === "showdown") L.push(`Opponent showed: ${P.show(st.holes[G.BOT])}`);
+  L.push(`Result: ${fmt(st.stacks[G.HERO] - G.START)} chips.`, "");
+
+  let street = -1;
+  for (const rec of st.log) {
+    if (rec.street !== street) {
+      street = rec.street;
+      L.push(`--- ${G.STREETS[street]} ${rec.board.length ? "(" + P.show(rec.board) + ")" : ""} ---`);
+    }
+    const who = rec.actor === G.HERO ? "You" : "Bot";
+    L.push(`${who} ${describeAction(rec, rec.actor === G.HERO)}   [pot before ${rec.potBefore}]` + (rec.note ? `   (bot: ${rec.note})` : ""));
+    if (rec.actor === G.HERO && rec.analysis) {
+      const A = rec.analysis;
+      L.push(`    equity ${pct(A.equity)} vs ${A.combos} combos ` +
+             (A.exact ? "(exact, all runouts enumerated)"
+                      : `(sampled, ${A.samplesEach}/combo, +-${(A.stderr * 100).toFixed(2)}%)`) +
+             (A.need > 0 ? `, price ${pct(A.price)}, MDF ${pct(A.mdf)}` : ""));
+      for (const row of A.rows) {
+        const tag = row === rec.chosen ? " <- you" : (row === A.best ? " <- best" : "");
+        L.push(`    ${String(row.action + (row.to ? " " + row.to : "")).padEnd(16)} EV ${Math.round(row.ev)}${tag}`);
+      }
+    }
+  }
+  L.push("", "Analyse this hand. For each of my decisions give a brief, concrete, mathematical",
+         "explanation of why the best action was best, and say plainly where the modelled range",
+         "or the no-further-betting assumption is doing the real work rather than the maths.");
+  return L.join("\n");
+}
+
+function copyText(text, btn) {
+  const done = ok => { btn.textContent = ok ? "Copied" : "Failed"; setTimeout(() => btn.textContent = "Copy for Claude", 1400); };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+    return;
+  }
+  const ta = el("textarea");
+  ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  ta.remove(); done(ok);
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === "`") {
+    if (st && st.over) { e.preventDefault(); nextHand(); }
+  }
+});
+
+st = G.newHand(handNo, handNo % 2, null, handNo * 7919 + 13);
+step();
+</script>
+</body>
+</html>
