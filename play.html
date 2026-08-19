@@ -505,9 +505,10 @@ body.preboot .ov.start{background:transparent}
 .log .rd{color:rgba(255,255,255,.78); margin-top:5px}
 
 /* ---- solver overlay ---- */
-.solver{position:absolute; top:16px; right:18px; z-index:22; width:224px;
+.solver{display:none; position:absolute; top:16px; right:18px; z-index:22; width:224px;
   background:rgba(9,19,15,.94); border-radius:12px; padding:10px 11px 9px;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.11), 0 6px 22px rgba(0,0,0,.4)}
+.solver.on, .sv-open.on{display:block}
 .sv-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
 .sv-head span{font-size:9px; text-transform:uppercase; letter-spacing:.16em; color:#8fc3ab}
 .sv-head button{background:none; box-shadow:none; padding:0 4px; font-size:16px; line-height:1;
@@ -546,7 +547,7 @@ body.preboot .ov.start{background:transparent}
 .rv-acts{display:flex; gap:9px; margin-top:14px}
 .rv-acts button{flex:1}
 .rv-copy{flex:0 0 auto!important; padding-left:16px; padding-right:16px}
-.sv-open{position:absolute; top:16px; right:18px; z-index:22; padding:7px 13px; font-size:10px;
+.sv-open{display:none; position:absolute; top:16px; right:18px; z-index:22; padding:7px 13px; font-size:10px;
   text-transform:uppercase; letter-spacing:.12em; background:rgba(8,18,14,.72)}
 /* ============================================================ narrow screens
    Two steps. Under 920px the sidebar stops being a column beside the table and becomes a
@@ -578,7 +579,13 @@ body.preboot .ov.start{background:transparent}
   .side > button{font-size:11px; padding:10px 12px}
   .trumpbadge{top:8px; left:8px; padding:6px 9px; gap:7px}
   .trumpbadge .s{font-size:20px} .trumpbadge .v{font-size:11px}
-  .trumpcard{--cw:58px; --ch:82px; width:58px; height:82px}
+  /* The trump card is deliberately half-tucked under the right edge of the felt. On a
+     desktop it tucks under the felt and the page shows behind it; on a phone the felt edge
+     is six pixels from the screen, so the same treatment gets cut off by the display rather
+     than tucked. Smaller and fully on-screen here. Rotated 270deg, a 48px card occupies 68px
+     of width, which clears the right trick slot by twenty pixels. */
+  .trumpcard{--cw:48px; --ch:68px; width:48px; height:68px; right:8px;
+    transform:translate(0,-50%) rotate(270deg)}
   .trumplabel{display:none}
   /* An eight-card fan reaches the bottom-right corner on a phone, so the deck cannot stay
      there — at 48px cards it sat squarely on the last card in the hand. It moves to the top
@@ -689,12 +696,12 @@ body.preboot .ov.start{background:transparent}
       <div class="n o1" id="deckN">7</div></div>
     <div class="log" id="log"></div>
 
-    <div class="solver" id="solver" style="display:none">
+    <div class="solver" id="solver">
       <div class="sv-head"><span id="svTitle">Solver</span>
         <button id="svClose" title="hide">×</button></div>
       <div class="sv-body" id="svBody"></div>
     </div>
-    <button class="sv-open" id="svOpen" style="display:none">Solver</button>
+    <button class="sv-open" id="svOpen">Solver</button>
 
     <div class="zone opp">
       <div class="tag o1" id="oppTag">Opponent</div>
@@ -1879,8 +1886,8 @@ async function cardEV(legal){
    than a hint you have to read past while deciding. */
 function showSolver(title, result){
   const box=$("solver");
-  if(!solverOn || !result.rows.length){ box.style.display="none"; return; }
-  box.style.display="block";
+  if(!solverOn || !result.rows.length){ box.classList.remove("on"); return; }
+  box.classList.add("on");
   const best=Math.max(...result.rows.map(r=>r.ev));
   const worst=Math.min(...result.rows.map(r=>r.ev));
   const span=Math.max(best-worst, .001);
@@ -1897,12 +1904,12 @@ function showSolver(title, result){
   $("svTitle").textContent=title;
   $("svBody").innerHTML=rows+`<div class="sv-note">${result.note}</div>`;
 }
-const hideSolver = () => { $("solver").style.display="none"; };
+const hideSolver = () => { $("solver").classList.remove("on"); };
 
 /* Solving blocks the thread for a few hundred ms on the big rounds, so say so first. */
 function solving(title){
   if(!solverOn) return;
-  const box=$("solver"); box.style.display="block";
+  const box=$("solver"); box.classList.add("on");
   $("svTitle").textContent=title;
   $("svBody").innerHTML=`<div class="sv-note">solving…</div>`;
 }
@@ -2359,9 +2366,9 @@ window.addEventListener("resize", ()=>{
   resizeT=setTimeout(()=>{ if(G && G.hands) render(); }, 120);
 });
 
-$("svClose").onclick=()=>{ solverOn=false; hideSolver(); $("svOpen").style.display="block"; };
+$("svClose").onclick=()=>{ solverOn=false; hideSolver(); $("svOpen").classList.add("on"); };
 $("svOpen").onclick=()=>{
-  solverOn=true; $("svOpen").style.display="none";
+  solverOn=true; $("svOpen").classList.remove("on");
   if(pendingCard){
     const legal=pendingCard.legal;
     cardEV(legal).then(r=>{ if(pendingCard) showSolver("Card EV", r); });
@@ -2371,7 +2378,7 @@ $("svOpen").onclick=()=>{
   }
 };
 
-if(!solverOn) $("svOpen").style.display="block";
+if(!solverOn) $("svOpen").classList.add("on");
 startScreen();
 </script>
 </body>
