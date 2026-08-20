@@ -35,8 +35,52 @@ body{
 }
 button{font:inherit; color:inherit; border:0; background:none; cursor:pointer; touch-action:manipulation}
 
-.app{height:100dvh; display:grid; grid-template-columns:1fr 340px}
-@media (max-width:900px){ .app{grid-template-columns:1fr} .panel{display:none} }
+/* Desktop: table and controls stack in the left column, panel is a full-height right rail. */
+.app{height:100dvh; display:grid; grid-template-columns:1fr 340px;
+  grid-template-rows:1fr auto; grid-template-areas:"table panel" "controls panel"}
+#tableCol{grid-area:table} .panel{grid-area:panel} .controls{grid-area:controls}
+
+/* Phone: one column, and the panel sits between the table and the controls rather than
+   being hidden. Collapsed it shows a single summary line; tapping slides the rest up over
+   the table. It never covers the controls, so the numbers stay readable while you size a
+   bet. */
+@media (max-width:900px){
+  .app{grid-template-columns:1fr; grid-template-rows:1fr auto auto;
+    grid-template-areas:"table" "panel" "controls"}
+  .table{padding:8px 10px; gap:4px}
+  .panel{
+    border-left:0; border-top:1px solid rgba(0,0,0,.45); padding:0;
+    height:44px; overflow:visible; position:relative; display:block;
+  }
+  .handle{display:flex}
+  /* Out of flow, opening upward over the table. The grid row stays 44px throughout. */
+  .pbody{
+    position:absolute; bottom:100%; left:0; right:0; z-index:30;
+    max-height:0; overflow:hidden; padding:0 12px; gap:9px;
+    background:rgba(8,17,13,.97); border-top:1px solid rgba(0,0,0,.45);
+    transition:max-height .24s ease, padding .24s ease;
+  }
+  .panel.open .pbody{max-height:52dvh; overflow-y:auto; padding:11px 12px 13px}
+  /* Five board cards have to fit across the narrowest phone. */
+  .card{width:clamp(40px,17vw,64px); height:clamp(58px,24.5vw,92px)}
+  .card .r{font-size:clamp(17px,7vw,26px)} .card .s{font-size:clamp(14px,5.8vw,22px)}
+  .card.sm{width:clamp(34px,12vw,46px); height:clamp(48px,17vw,66px)}
+  .card.sm .r{font-size:15px} .card.sm .s{font-size:13px}
+  .board{min-height:0; gap:4px}
+  .act{padding:11px 6px; font-size:13px}
+  .seat{padding:4px 0}
+}
+
+/* The collapsed summary. Desktop never needs it, because the whole panel is already open. */
+.handle{
+  display:none; align-items:center; gap:10px; padding:0 12px; height:44px; cursor:pointer;
+  font-size:12px; font-weight:900; -webkit-tap-highlight-color:transparent;
+}
+.handle .eq{color:var(--gold-hi); font-variant-numeric:tabular-nums}
+.handle .mid{color:var(--dim); font-weight:700; font-size:11px; overflow:hidden;
+  white-space:nowrap; text-overflow:ellipsis}
+.handle .chev{margin-left:auto; color:var(--dim); transition:transform .24s ease}
+.panel.open .handle .chev{transform:rotate(180deg)}
 
 /* ---------------------------------------------------------------- table */
 .table{display:flex; flex-direction:column; min-height:0; padding:10px 14px; gap:6px}
@@ -108,8 +152,9 @@ input[type=range]{flex:1; accent-color:var(--gold)}
 /* ---------------------------------------------------------------- panel */
 .panel{
   background:rgba(10,20,16,.55); border-left:1px solid rgba(0,0,0,.4);
-  padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px; font-size:12px;
+  padding:12px; overflow:auto; font-size:12px;
 }
+.pbody{display:flex; flex-direction:column; gap:10px}
 .panel h2{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin:0}
 .eqbar{height:22px; border-radius:6px; background:rgba(0,0,0,.4); overflow:hidden; position:relative}
 .eqbar i{display:block; height:100%; background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi))}
@@ -175,7 +220,7 @@ input[type=range]{flex:1; accent-color:var(--gold)}
 </head>
 <body>
 <div class="app">
-  <div class="table">
+  <div class="table" id="tableCol">
     <div class="top">
       Hand <b id="handno">1</b> · blinds <b>50/100</b> · <b>100bb</b> deep
       <span class="pl" id="pl">0</span>
@@ -189,10 +234,10 @@ input[type=range]{flex:1; accent-color:var(--gold)}
     </div>
     <div class="seat" id="seatHero"></div>
 
-    <div class="controls" id="controls"></div>
   </div>
 
   <div class="panel" id="panel"></div>
+  <div class="controls" id="controls"></div>
 </div>
 <div class="retro hidden" id="retro"></div>
 
@@ -326,9 +371,41 @@ function button(cls, label, sub, onclick, best) {
 /* ---------------------------------------------------------------- live panel */
 
 function renderPanel() {
-  const p = $("panel");
+  const shell = $("panel");                   // the grid cell, and what carries .open
+  let p = shell;
+  const wasOpen = shell.classList.contains("open");
   p.innerHTML = "";
   const A = (!st.over && st.toAct === G.HERO) ? pending : null;
+
+  /* One line carrying what a decision actually turns on, so a phone shows something useful
+     without the panel open. Hidden on desktop, where the full panel is always visible. */
+  const body = el("div", "pbody");
+  const handle = el("div", "handle");
+  if (A) {
+    handle.appendChild(el("span", "eq", pct(A.equity)));
+    const O = P.outs(st.holes[G.HERO], st.board);
+    const bits = [];
+    if (A.need > 0) bits.push(`need ${pct(A.price)}`);
+    if (A.ahead != null && A.ahead >= 0.5) bits.push(`ahead of ${pct(A.ahead)}`);
+    else if (O && O.n) bits.push(`${O.n} outs`);
+    if (A.best) bits.push(`best: ${A.best.action}${A.best.to ? " " + fmt(A.best.to) : ""}`);
+    handle.appendChild(el("span", "mid", bits.join(" · ")));
+  } else {
+    handle.appendChild(el("span", "mid", st.over ? "Hand complete" : "Opponent to act"));
+  }
+  handle.appendChild(el("span", "chev", "▲"));
+  handle.onclick = () => shell.classList.toggle("open");
+  shell.append(body, handle);
+  if (wasOpen) {
+    /* Restoring the open state, not opening it. The body is rebuilt on every render, and a
+       fresh one starts at max-height 0, so letting the transition run would make an open
+       panel visibly collapse and regrow every time the table updated. Suppress it for the
+       one frame it takes to paint; a tap on the handle still animates. */
+    body.style.transition = "none";
+    shell.classList.add("open");
+    requestAnimationFrame(() => { body.style.transition = ""; });
+  }
+  p = body;                                   // everything below fills the body, not the shell
 
   if (A) {
     // Equity.
